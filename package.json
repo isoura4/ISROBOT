@@ -1,0 +1,23 @@
+{
+  "name": "bot-discord",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isoura4/bot-discord.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/isoura4/bot-discord/issues"
+  },
+  "homepage": "https://github.com/isoura4/bot-discord#readme",
+  "description": "",
+  "dependencies": {
+    "discord.js": "^14.16.3"
+  }
+}
