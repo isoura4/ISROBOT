@@ -1,9 +1,3 @@
 {
-  "servers": {
-    "1178583138209890334": {
-      "blueskyChannelId": "1318236776493744248",
-      "mentionRoleId": "1318305736836649091",
-      "blueskyHandle": "isoura.bsky.social"
-    }
-  }
+  "servers": {}
 }

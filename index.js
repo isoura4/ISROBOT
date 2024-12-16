@@ -52,6 +52,15 @@ const createServerConfig = (guildId) => {
     }
 };
 
+const deleteServerConfig = (guildId) => {
+    const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
+    if (serverConfig.servers[guildId]) {
+        delete serverConfig.servers[guildId];
+        fs.writeFileSync('serverConfig.json', JSON.stringify(serverConfig, null, 2));
+        console.log(`Configuration supprimée pour le serveur ${guildId}.`);
+    }
+};
+
 client.once('ready', async () => {
     console.log(`Bot connecté en tant que ${client.user.tag}`);
 
@@ -73,6 +82,11 @@ client.on('guildCreate', async guild => {
     createServerConfig(guild.id);
     await registerCommands(guild.id);
     console.log(`Le bot a rejoint un nouveau serveur : ${guild.name} (${guild.id})`);
+});
+
+client.on('guildDelete', guild => {
+    deleteServerConfig(guild.id);
+    console.log(`Le bot a été expulsé du serveur : ${guild.name} (${guild.id})`);
 });
 
 client.on('interactionCreate', async interaction => {
