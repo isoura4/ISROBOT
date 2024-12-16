@@ -14,6 +14,10 @@ async function checkBlueskyPosts(client) {
     }
 
     try {
+        // Lire l'ID du dernier post récupéré
+        let lastPostIdData = fs.readFileSync('lastPostId.json', 'utf8');
+        let lastPostId = JSON.parse(lastPostIdData).lastPostId;
+
         // Étape 1 : Résolution du handle pour obtenir le DID
         const didUrl = `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${config.blueskyHandle}`;
         const didResponse = await fetch(didUrl, { method: 'GET' });
@@ -50,29 +54,39 @@ async function checkBlueskyPosts(client) {
         // Afficher les posts sous forme d'embeds
         if (feedData.feed && feedData.feed.length > 0) {
             const lastPost = feedData.feed[0]; // Le dernier post est le premier dans la liste
-            const embed = new EmbedBuilder()
-                .setTitle(lastPost.post.author.displayName || lastPost.post.author.handle)
-                .setDescription(lastPost.post.record.text)
-                .setColor('#0099ff')
-                .setTimestamp(new Date(lastPost.post.record.createdAt));
 
-            // Ajouter les images si elles existent
-            if (lastPost.post.embed && lastPost.post.embed.images && lastPost.post.embed.images.length > 0) {
-                const imageUrl = lastPost.post.embed.images[0].fullsize;
-                embed.setImage(imageUrl);
-            }
+            // Vérifier si l'ID du nouveau post est différent de l'ID stocké
+            if (lastPost.uri !== lastPostId) {
+                const embed = new EmbedBuilder()
+                    .setTitle(lastPost.post.author.displayName || lastPost.post.author.handle)
+                    .setDescription(lastPost.post.record.text)
+                    .setColor('#0099ff')
+                    .setTimestamp(new Date(lastPost.post.record.createdAt));
 
-            // Mentionner le rôle spécifique et ajouter le texte avant l'embed
-            const role = channel.guild.roles.cache.get(mentionRoleId);
-            if (role) {
-                channel.send({ content: `<@&${mentionRoleId}> Nouveau post de Bluesky !`, embeds: [embed] });
+                // Ajouter les images si elles existent
+                if (lastPost.post.embed && lastPost.post.embed.images && lastPost.post.embed.images.length > 0) {
+                    const imageUrl = lastPost.post.embed.images[0].fullsize;
+                    embed.setImage(imageUrl);
+                }
+
+                // Mentionner le rôle spécifique et ajouter le texte avant l'embed
+                const role = channel.guild.roles.cache.get(mentionRoleId);
+                if (role) {
+                    channel.send({ content: `<@&${mentionRoleId}> Nouveau post de Bluesky !`, embeds: [embed] });
+                } else {
+                    channel.send({ content: 'Nouveau post de Bluesky !', embeds: [embed] });
+                }
+
+                // Mettre à jour l'ID du dernier post récupéré
+                lastPostIdData = JSON.stringify({ lastPostId: lastPost.uri });
+                fs.writeFileSync('lastPostId.json', lastPostIdData, 'utf8');
+
+                console.log('Nouveau post de Bluesky affiché avec succès.');
             } else {
-                channel.send({ content: 'Nouveau post de Bluesky !', embeds: [embed] });
+                console.log('Aucun nouveau post trouvé.');
             }
-
-            console.log('Nouveau post de Bluesky affiché avec succès.');
         } else {
-            console.log('Aucun nouveau post trouvé.');
+            console.log('Aucun post trouvé pour cet utilisateur.');
         }
     } catch (error) {
         console.error('Erreur lors de la récupération des messages de Bluesky:', error);
