@@ -18,6 +18,7 @@
   "homepage": "https://github.com/isoura4/bot-discord#readme",
   "description": "",
   "dependencies": {
-    "discord.js": "^14.16.3"
+    "discord.js": "^14.16.3",
+    "node-fetch": "^2.7.0"
   }
 }
