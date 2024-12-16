@@ -2,14 +2,21 @@ const { EmbedBuilder } = require('discord.js');
 const fetch = require('node-fetch');
 const fs = require('fs');
 
-async function checkBlueskyPosts(client) {
+async function checkBlueskyPosts(client, guildId) {
+    const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
     const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
-    const channelId = config.blueskyChannelId;
-    const mentionRoleId = config.mentionRoleId;
+    const channelId = serverConfig.servers[guildId]?.blueskyChannelId;
+    const mentionRoleId = serverConfig.servers[guildId]?.mentionRoleId;
+    const blueskyHandle = serverConfig.servers[guildId]?.blueskyHandle;
     const channel = client.channels.cache.get(channelId);
 
     if (!channel) {
-        console.error('Le salon pour les messages de Bluesky n\'a pas été défini.');
+        console.error(`Le salon pour les messages de Bluesky n'a pas été défini pour le serveur ${guildId}.`);
+        return;
+    }
+
+    if (!blueskyHandle) {
+        console.error(`Le handle Bluesky n'a pas été défini pour le serveur ${guildId}.`);
         return;
     }
 
@@ -19,7 +26,7 @@ async function checkBlueskyPosts(client) {
         let lastPostId = JSON.parse(lastPostIdData).lastPostId;
 
         // Étape 1 : Résolution du handle pour obtenir le DID
-        const didUrl = `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${config.blueskyHandle}`;
+        const didUrl = `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${blueskyHandle}`;
         const didResponse = await fetch(didUrl, { method: 'GET' });
         const didData = await didResponse.json();
         const did = didData.did;
@@ -41,7 +48,7 @@ async function checkBlueskyPosts(client) {
         const accessToken = tokenData.accessJwt;
 
         // Étape 3 : Récupération des posts
-        const feedUrl = `https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed?actor=${config.blueskyHandle}`;
+        const feedUrl = `https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed?actor=${blueskyHandle}`;
         const headers = {
             'Authorization': `Bearer ${accessToken}`
         };

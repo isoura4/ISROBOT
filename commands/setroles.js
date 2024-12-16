@@ -3,11 +3,11 @@ const fs = require('fs');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('setchannel')
-        .setDescription('Définit le salon où les messages de Bluesky seront postés.')
-        .addChannelOption(option =>
-            option.setName('channel')
-                .setDescription('Le salon où les messages de Bluesky seront postés.')
+        .setName('setrole')
+        .setDescription('Définit le rôle à mentionner pour les messages de Bluesky.')
+        .addRoleOption(option =>
+            option.setName('role')
+                .setDescription('Le rôle à mentionner pour les messages de Bluesky.')
                 .setRequired(true)
         ),
     async execute(interaction) {
@@ -15,12 +15,12 @@ module.exports = {
             return interaction.reply('Vous n\'avez pas la permission d\'utiliser cette commande.');
         }
 
-        const channel = interaction.options.getChannel('channel');
+        const role = interaction.options.getRole('role');
         const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
         serverConfig.servers[interaction.guildId] = serverConfig.servers[interaction.guildId] || {};
-        serverConfig.servers[interaction.guildId].blueskyChannelId = channel.id;
+        serverConfig.servers[interaction.guildId].mentionRoleId = role.id;
         fs.writeFileSync('serverConfig.json', JSON.stringify(serverConfig, null, 2));
 
-        await interaction.reply(`Le salon pour les messages de Bluesky a été défini sur ${channel}.`);
+        await interaction.reply(`Le rôle à mentionner pour les messages de Bluesky a été défini sur ${role.name}.`);
     }
 };

@@ -7,17 +7,23 @@ module.exports = {
         .setName('bluesky')
         .setDescription('Récupère et affiche les messages de Bluesky.'),
     async execute(interaction) {
+        const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
         const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
-        const channelId = config.blueskyChannelId;
+        const channelId = serverConfig.servers[interaction.guildId]?.blueskyChannelId;
+        const blueskyHandle = serverConfig.servers[interaction.guildId]?.blueskyHandle;
         const channel = interaction.guild.channels.cache.get(channelId);
 
         if (!channel) {
             return interaction.reply('Le salon pour les messages de Bluesky n\'a pas été défini.');
         }
 
+        if (!blueskyHandle) {
+            return interaction.reply('Le handle Bluesky n\'a pas été défini.');
+        }
+
         try {
             // Étape 1 : Résolution du handle pour obtenir le DID
-            const didUrl = `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${config.blueskyHandle}`;
+            const didUrl = `https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=${blueskyHandle}`;
             const didResponse = await fetch(didUrl, { method: 'GET' });
             const didData = await didResponse.json();
             const did = didData.did;
@@ -39,7 +45,7 @@ module.exports = {
             const accessToken = tokenData.accessJwt;
 
             // Étape 3 : Récupération du dernier post
-            const feedUrl = `https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed?actor=${config.blueskyHandle}`;
+            const feedUrl = `https://bsky.social/xrpc/app.bsky.feed.getAuthorFeed?actor=${blueskyHandle}`;
             const headers = {
                 'Authorization': `Bearer ${accessToken}`
             };
@@ -53,7 +59,7 @@ module.exports = {
             if (feedData.feed && feedData.feed.length > 0) {
                 const lastPost = feedData.feed[0]; // Le dernier post est le premier dans la liste
                 const embed = new EmbedBuilder()
-                    .setTitle(lastPost.post.author.handle)
+                    .setTitle(lastPost.post.author.displayName || lastPost.post.author.handle)
                     .setDescription(lastPost.post.record.text)
                     .setColor('#0099ff')
                     .setTimestamp(new Date(lastPost.post.record.createdAt));
