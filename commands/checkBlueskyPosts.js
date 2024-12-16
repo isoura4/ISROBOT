@@ -5,6 +5,7 @@ const fs = require('fs');
 async function checkBlueskyPosts(client) {
     const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
     const channelId = config.blueskyChannelId;
+    const mentionRoleId = config.mentionRoleId;
     const channel = client.channels.cache.get(channelId);
 
     if (!channel) {
@@ -50,7 +51,7 @@ async function checkBlueskyPosts(client) {
         if (feedData.feed && feedData.feed.length > 0) {
             const lastPost = feedData.feed[0]; // Le dernier post est le premier dans la liste
             const embed = new EmbedBuilder()
-                .setTitle(lastPost.post.author.handle)
+                .setTitle(lastPost.post.author.displayName || lastPost.post.author.handle)
                 .setDescription(lastPost.post.record.text)
                 .setColor('#0099ff')
                 .setTimestamp(new Date(lastPost.post.record.createdAt));
@@ -61,7 +62,14 @@ async function checkBlueskyPosts(client) {
                 embed.setImage(imageUrl);
             }
 
-            channel.send({ embeds: [embed] });
+            // Mentionner le rôle spécifique et ajouter le texte avant l'embed
+            const role = channel.guild.roles.cache.get(mentionRoleId);
+            if (role) {
+                channel.send({ content: `<@&${mentionRoleId}> Nouveau post de Bluesky !`, embeds: [embed] });
+            } else {
+                channel.send({ content: 'Nouveau post de Bluesky !', embeds: [embed] });
+            }
+
             console.log('Nouveau post de Bluesky affiché avec succès.');
         } else {
             console.log('Aucun nouveau post trouvé.');
