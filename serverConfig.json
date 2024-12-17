@@ -6,11 +6,17 @@
       "blueskyHandle": null,
       "twitchStreamers": [
         "streamingourzoo",
-        "aypierre"
+        "aypierre",
+        "thecoffeeelf"
       ],
       "twitchAnnounceChannelId": "1318491524010479677",
       "twitchMentionRoleId": "1178583138209890334",
-      "twitchOAuthToken": "pq73pdbrf56v1rybrnpjh5idrx7od2"
+      "twitchOAuthToken": "pq73pdbrf56v1rybrnpjh5idrx7od2",
+      "announcedStreams": {
+        "45183214251": true,
+        "43387177832": true,
+        "43387031288": true
+      }
     }
   }
 }

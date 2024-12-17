@@ -16,6 +16,8 @@ async function checkTwitchStreams(client, guildId) {
         return;
     }
 
+    const announcedStreams = serverConfig.servers[guildId]?.announcedStreams || {};
+
     for (const streamer of twitchStreamers) {
         try {
             const twitchOAuthToken = await getTwitchOAuthToken(guildId);
@@ -29,23 +31,33 @@ async function checkTwitchStreams(client, guildId) {
 
             if (data.data.length > 0) {
                 const stream = data.data[0];
-                const embed = new EmbedBuilder()
-                    .setTitle(`${stream.user_name} est en ligne !`)
-                    .setURL(`https://twitch.tv/${stream.user_name}`)
-                    .setDescription(stream.title)
-                    .setThumbnail(`https://static-cdn.jtvnw.net/jtv_user_pictures/${stream.user_login}-profile_image-300x300.png`)
-                    .addFields(
-                        { name: 'Jeu', value: stream.game_name, inline: true },
-                        { name: 'Spectateurs', value: stream.viewer_count.toString(), inline: true }
-                    )
-                    .setImage(stream.thumbnail_url.replace('{width}', '1920').replace('{height}', '1080'))
-                    .setColor('#6441A5');
+                const streamId = stream.id;
 
-                const role = channel.guild.roles.cache.get(twitchMentionRoleId);
-                if (role) {
-                    channel.send({ content: `<@&${twitchMentionRoleId}> Nouveau stream Twitch !`, embeds: [embed] });
-                } else {
-                    channel.send({ embeds: [embed] });
+                // Vérifier si le stream a déjà été annoncé
+                if (!announcedStreams[streamId]) {
+                    const embed = new EmbedBuilder()
+                        .setTitle(`${stream.user_name} est en ligne !`)
+                        .setURL(`https://twitch.tv/${stream.user_name}`)
+                        .setDescription(stream.title)
+                        .setThumbnail(`https://static-cdn.jtvnw.net/jtv_user_pictures/${stream.user_login}-profile_image-300x300.png`)
+                        .addFields(
+                            { name: 'Jeu', value: stream.game_name, inline: true },
+                            { name: 'Spectateurs', value: stream.viewer_count.toString(), inline: true }
+                        )
+                        .setImage(stream.thumbnail_url.replace('{width}', '1920').replace('{height}', '1080'))
+                        .setColor('#6441A5');
+
+                    const role = channel.guild.roles.cache.get(twitchMentionRoleId);
+                    if (role) {
+                        channel.send({ content: `<@&${twitchMentionRoleId}> Nouveau stream Twitch !`, embeds: [embed] });
+                    } else {
+                        channel.send({ embeds: [embed] });
+                    }
+
+                    // Marquer le stream comme annoncé
+                    announcedStreams[streamId] = true;
+                    serverConfig.servers[guildId].announcedStreams = announcedStreams;
+                    fs.writeFileSync('serverConfig.json', JSON.stringify(serverConfig, null, 2));
                 }
             }
         } catch (error) {

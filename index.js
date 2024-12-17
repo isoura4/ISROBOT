@@ -53,7 +53,8 @@ const createServerConfig = (guildId) => {
             twitchStreamers: [],
             twitchAnnounceChannelId: null,
             twitchMentionRoleId: null,
-            twitchOAuthToken: null
+            twitchOAuthToken: null,
+            announcedStreams: {} // Initialiser announcedStreams
         };
         fs.writeFileSync('serverConfig.json', JSON.stringify(serverConfig, null, 2));
         console.log(`Configuration initiale créée pour le serveur ${guildId}.`);
