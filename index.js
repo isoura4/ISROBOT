@@ -2,6 +2,7 @@ const fs = require('fs');
 const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 const { token, clientId } = require('./config.json');
 const checkBlueskyPosts = require('./commands/checkBlueskyPosts');
+const checkTwitchStreams = require('./commands/checkTwitchStreams');
 
 const client = new Client({
     intents: [
@@ -45,7 +46,10 @@ const createServerConfig = (guildId) => {
         serverConfig.servers[guildId] = {
             blueskyChannelId: null,
             mentionRoleId: null,
-            blueskyHandle: null
+            blueskyHandle: null,
+            twitchStreamers: [],
+            twitchAnnounceChannelId: null,
+            twitchMentionRoleId: null
         };
         fs.writeFileSync('serverConfig.json', JSON.stringify(serverConfig, null, 2));
         console.log(`Configuration initiale créée pour le serveur ${guildId}.`);
@@ -74,6 +78,7 @@ client.once('ready', async () => {
     setInterval(() => {
         client.guilds.cache.forEach(guild => {
             checkBlueskyPosts(client, guild.id);
+            checkTwitchStreams(client, guild.id);
         });
     }, 300000); // 300000 millisecondes = 5 minutes
 });
