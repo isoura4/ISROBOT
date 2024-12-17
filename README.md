@@ -2,6 +2,8 @@
 
 Ce bot Discord est conçu pour intégrer diverses fonctionnalités, y compris l'intégration avec Twitch, des commandes personnalisées, et des notifications de nouveaux streams.
 
+Si vous voulez essayer le bot sans le host :
+
 https://discord.com/oauth2/authorize?client_id=1318211219542511617
 
 ![image](https://github.com/user-attachments/assets/3a091324-5c63-4c3e-8c8e-02bc431eceb1)
