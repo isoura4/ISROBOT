@@ -88,6 +88,12 @@ const getTwitchOAuthToken = async (guildId) => {
     return serverConfig.servers[guildId].twitchOAuthToken;
 };
 
+const reloadCommands = async () => {
+    client.guilds.cache.forEach(guild => {
+        registerCommands(guild.id);
+    });
+};
+
 client.once('ready', async () => {
     console.log(`Bot connecté en tant que ${client.user.tag}`);
 
@@ -104,6 +110,9 @@ client.once('ready', async () => {
             checkTwitchStreams(client, guild.id);
         });
     }, 300000); // 300000 millisecondes = 5 minutes
+
+    // Recharger les commandes toutes les 10 minutes
+    setInterval(reloadCommands, 600000); // 600000 millisecondes = 10 minutes
 });
 
 client.on('guildCreate', async guild => {
