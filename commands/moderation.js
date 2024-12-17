@@ -116,6 +116,12 @@ module.exports = {
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
 
+        // Vérifier les permissions de l'utilisateur
+        const hasPermission = interaction.member.permissions.has(PermissionFlagsBits[subcommand.toUpperCase()]);
+        if (!hasPermission) {
+            return interaction.reply({ content: `Vous n'avez pas la permission d'exécuter cette commande.`, ephemeral: true });
+        }
+
         switch (subcommand) {
             case 'kick':
                 await kickUser(interaction);
@@ -151,10 +157,6 @@ async function kickUser(interaction) {
     const user = interaction.options.getUser('user');
     const reason = interaction.options.getString('reason') || 'Aucune raison fournie.';
 
-    if (!interaction.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-        return interaction.reply({ content: 'Vous n\'avez pas la permission de kicker des membres.', ephemeral: true });
-    }
-
     try {
         await interaction.guild.members.kick(user, reason);
         await interaction.reply({ content: `Le membre ${user.tag} a été expulsé avec succès.`, ephemeral: true });
@@ -167,10 +169,6 @@ async function kickUser(interaction) {
 async function banUser(interaction) {
     const user = interaction.options.getUser('user');
     const reason = interaction.options.getString('reason') || 'Aucune raison fournie.';
-
-    if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-        return interaction.reply({ content: 'Vous n\'avez pas la permission de bannir des membres.', ephemeral: true });
-    }
 
     try {
         await interaction.guild.members.ban(user, { reason: reason });
@@ -185,10 +183,6 @@ async function muteUser(interaction) {
     const user = interaction.options.getUser('user');
     const reason = interaction.options.getString('reason') || 'Aucune raison fournie.';
 
-    if (!interaction.member.permissions.has(PermissionFlagsBits.MuteMembers)) {
-        return interaction.reply({ content: 'Vous n\'avez pas la permission de rendre muet des membres.', ephemeral: true });
-    }
-
     try {
         const member = await interaction.guild.members.fetch(user.id);
         await member.timeout(60 * 60 * 1000, reason); // Mute for 1 hour
@@ -201,10 +195,6 @@ async function muteUser(interaction) {
 
 async function unmuteUser(interaction) {
     const user = interaction.options.getUser('user');
-
-    if (!interaction.member.permissions.has(PermissionFlagsBits.MuteMembers)) {
-        return interaction.reply({ content: 'Vous n\'avez pas la permission de rendre la parole à des membres.', ephemeral: true });
-    }
 
     try {
         const member = await interaction.guild.members.fetch(user.id);
@@ -219,10 +209,6 @@ async function unmuteUser(interaction) {
 async function createChannel(interaction) {
     const name = interaction.options.getString('name');
     const type = interaction.options.getString('type');
-
-    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-        return interaction.reply({ content: 'Vous n\'avez pas la permission de gérer les salons.', ephemeral: true });
-    }
 
     try {
         await interaction.guild.channels.create({
@@ -239,10 +225,6 @@ async function createChannel(interaction) {
 async function deleteChannel(interaction) {
     const channel = interaction.options.getChannel('channel');
 
-    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-        return interaction.reply({ content: 'Vous n\'avez pas la permission de gérer les salons.', ephemeral: true });
-    }
-
     try {
         await channel.delete();
         await interaction.reply({ content: `Le salon ${channel.name} a été supprimé avec succès.`, ephemeral: true });
@@ -255,10 +237,6 @@ async function deleteChannel(interaction) {
 async function createRole(interaction) {
     const name = interaction.options.getString('name');
     const color = interaction.options.getString('color') || '#000000';
-
-    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
-        return interaction.reply({ content: 'Vous n\'avez pas la permission de gérer les rôles.', ephemeral: true });
-    }
 
     try {
         await interaction.guild.roles.create({
@@ -274,10 +252,6 @@ async function createRole(interaction) {
 
 async function deleteRole(interaction) {
     const role = interaction.options.getRole('role');
-
-    if (!interaction.member.permissions.has(PermissionFlagsBits.ManageRoles)) {
-        return interaction.reply({ content: 'Vous n\'avez pas la permission de gérer les rôles.', ephemeral: true });
-    }
 
     try {
         await role.delete();
