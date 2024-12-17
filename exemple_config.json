@@ -4,5 +4,5 @@
     "blueskyHandle": "your_bluesky_handle",
     "blueskyAppPassword": "your_bluesky_app_password",
     "twitchClientId": "your_twitch_client_id",
-    "twitchClientSecret": "your_twitch_client_secret",
+    "twitchClientSecret": "your_twitch_client_secret"
 }
