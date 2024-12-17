@@ -1,7 +1,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const fs = require('fs');
-const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType } = require('discord.js');
 const config = require('./config.json');
 const checkBlueskyPosts = require('./commands/checkBlueskyPosts');
 const checkTwitchStreams = require('./commands/checkTwitchStreams');
@@ -115,6 +115,26 @@ client.once('ready', async () => {
 
     // Recharger les commandes toutes les 10 minutes
     setInterval(reloadCommands, 600000); // 600000 millisecondes = 10 minutes
+
+    // Définir le statut du bot
+    setInterval(async () => {
+        const start = Date.now();
+        await fetch('https://discord.com/api/v10/users/@me', {
+            headers: {
+                Authorization: `Bot ${config.token}`
+            }
+        });
+        const end = Date.now();
+        const responseTime = end - start;
+
+        client.user.setPresence({
+            activities: [{
+                name: `Ping: ${responseTime} ms`,
+                type: ActivityType.Watching
+            }],
+            status: 'online'
+        });
+    }, 60000); // 60000 millisecondes = 1 minute
 });
 
 client.on('guildCreate', async guild => {
