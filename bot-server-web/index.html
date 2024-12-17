@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Configuration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .server-list {
+            margin-bottom: 20px;
+        }
+        .server-item {
+            cursor: pointer;
+            padding: 10px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+        .server-item:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bot Configuration</h1>
+
+    <form id="configForm">
+        <label for="token">Discord Bot Token:</label>
+        <input type="text" id="token" name="token" required><br><br>
+        <label for="clientId">Discord Client ID:</label>
+        <input type="text" id="clientId" name="clientId" required><br><br>
+        <label for="twitchClientId">Twitch Client ID:</label>
+        <input type="text" id="twitchClientId" name="twitchClientId" required><br><br>
+        <label for="twitchClientSecret">Twitch Client Secret:</label>
+        <input type="text" id="twitchClientSecret" name="twitchClientSecret" required><br><br>
+        <button type="submit">Save Configuration</button>
+    </form>
+
+    <div class="server-list" id="serverList">
+        <h2>Servers</h2>
+        <div id="serverItems"></div>
+    </div>
+
+    <form id="serverConfigForm" style="display: none;">
+        <label for="guildId">Server ID:</label>
+        <input type="text" id="guildId" name="guildId" required readonly><br><br>
+        <label for="blueskyChannelId">Bluesky Channel ID:</label>
+        <input type="text" id="blueskyChannelId" name="blueskyChannelId"><br><br>
+        <label for="mentionRoleId">Mention Role ID:</label>
+        <input type="text" id="mentionRoleId" name="mentionRoleId"><br><br>
+        <label for="blueskyHandle">Bluesky Handle:</label>
+        <input type="text" id="blueskyHandle" name="blueskyHandle"><br><br>
+        <label for="twitchStreamers">Twitch Streamers (comma-separated):</label>
+        <input type="text" id="twitchStreamers" name="twitchStreamers"><br><br>
+        <label for="twitchAnnounceChannelId">Twitch Announce Channel ID:</label>
+        <input type="text" id="twitchAnnounceChannelId" name="twitchAnnounceChannelId"><br><br>
+        <label for="twitchMentionRoleId">Twitch Mention Role ID:</label>
+        <input type="text" id="twitchMentionRoleId" name="twitchMentionRoleId"><br><br>
+        <button type="submit">Save Server Configuration</button>
+    </form>
+
+    <button id="discordLoginButton">Connect with Discord</button>
+
+    <script>
+        document.getElementById('configForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const config = {
+                token: formData.get('token'),
+                clientId: formData.get('clientId'),
+                twitchClientId: formData.get('twitchClientId'),
+                twitchClientSecret: formData.get('twitchClientSecret')
+            };
+
+            const response = await fetch('/config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            });
+
+            const result = await response.json();
+            alert(result.message);
+        });
+
+        document.getElementById('serverConfigForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const guildId = formData.get('guildId');
+            const serverConfig = {
+                blueskyChannelId: formData.get('blueskyChannelId'),
+                mentionRoleId: formData.get('mentionRoleId'),
+                blueskyHandle: formData.get('blueskyHandle'),
+                twitchStreamers: formData.get('twitchStreamers').split(','),
+                twitchAnnounceChannelId: formData.get('twitchAnnounceChannelId'),
+                twitchMentionRoleId: formData.get('twitchMentionRoleId'),
+                twitchOAuthToken: null,
+                announcedStreams: {}
+            };
+
+            const response = await fetch(`/server-config/${guildId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(serverConfig)
+            });
+
+            const result = await response.json();
+            alert(result.message);
+        });
+
+        document.getElementById('discordLoginButton').addEventListener('click', () => {
+            const guildId = prompt('Enter the Server ID:');
+            if (guildId) {
+                window.location.href = `/discord/login?guildId=${guildId}`;
+            }
+        });
+
+        async function loadServers() {
+            const response = await fetch('/server-config');
+            const servers = await response.json();
+            const serverItems = document.getElementById('serverItems');
+            serverItems.innerHTML = '';
+
+            for (const guildId in servers) {
+                const serverItem = document.createElement('div');
+                serverItem.className = 'server-item';
+                serverItem.textContent = `Server ID: ${guildId}`;
+                serverItem.addEventListener('click', () => loadServerConfig(guildId));
+                serverItems.appendChild(serverItem);
+            }
+        }
+
+        async function loadServerConfig(guildId) {
+            const response = await fetch(`/server-config/${guildId}`);
+            const serverConfig = await response.json();
+            document.getElementById('guildId').value = guildId;
+            document.getElementById('blueskyChannelId').value = serverConfig.blueskyChannelId || '';
+            document.getElementById('mentionRoleId').value = serverConfig.mentionRoleId || '';
+            document.getElementById('blueskyHandle').value = serverConfig.blueskyHandle || '';
+            document.getElementById('twitchStreamers').value = serverConfig.twitchStreamers.join(',') || '';
+            document.getElementById('twitchAnnounceChannelId').value = serverConfig.twitchAnnounceChannelId || '';
+            document.getElementById('twitchMentionRoleId').value = serverConfig.twitchMentionRoleId || '';
+            document.getElementById('serverConfigForm').style.display = 'block';
+        }
+
+        loadServers();
+    </script>
+</body>
+</html>
