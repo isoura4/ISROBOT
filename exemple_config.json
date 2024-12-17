@@ -5,5 +5,4 @@
     "blueskyAppPassword": "your_bluesky_app_password",
     "twitchClientId": "your_twitch_client_id",
     "twitchClientSecret": "your_twitch_client_secret",
-    "twitchOAuthToken": "your_new_twitch_oauth_token"
 }
