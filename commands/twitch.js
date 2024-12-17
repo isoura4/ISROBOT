@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const fetch = require('node-fetch');
 const fs = require('fs');
+const getTwitchOAuthToken = require('../utils/getTwitchOAuthToken');
+const config = require('../config.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -15,22 +17,29 @@ module.exports = {
         const streamer = interaction.options.getString('streamer');
         const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
         const twitchStreamers = serverConfig.servers[interaction.guildId]?.twitchStreamers || [];
+        const twitchOAuthToken = await getTwitchOAuthToken(interaction.guildId);
 
         if (!twitchStreamers.includes(streamer)) {
             return interaction.reply(`Vous ne suivez pas le streamer Twitch ${streamer}.`);
         }
 
+        if (!twitchOAuthToken) {
+            return interaction.reply('Le token OAuth Twitch n\'a pas été configuré pour ce serveur. Veuillez suivre les instructions pour obtenir le token OAuth.');
+        }
+
         try {
             const response = await fetch(`https://api.twitch.tv/helix/streams?user_login=${streamer}`, {
                 headers: {
-                    'Client-ID': 'your_twitch_client_id',
-                    'Authorization': 'Bearer your_twitch_oauth_token'
+                    'Client-ID': config.twitchClientId,
+                    'Authorization': `Bearer ${twitchOAuthToken}`
                 }
             });
             const data = await response.json();
 
-            if (data.data.length === 0) {
-                return interaction.reply(`Le streamer ${streamer} n\'est pas en ligne.`);
+            console.log('API Response:', data); // Ajouter un log pour vérifier la réponse de l'API
+
+            if (!data.data || data.data.length === 0) {
+                return interaction.reply(`Le streamer ${streamer} n'est pas en ligne ou n'existe pas.`);
             }
 
             const stream = data.data[0];

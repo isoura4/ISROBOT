@@ -1,6 +1,8 @@
 const fetch = require('node-fetch');
 const fs = require('fs');
 const { EmbedBuilder } = require('discord.js');
+const getTwitchOAuthToken = require('../utils/getTwitchOAuthToken');
+const config = require('../config.json');
 
 async function checkTwitchStreams(client, guildId) {
     const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
@@ -16,10 +18,11 @@ async function checkTwitchStreams(client, guildId) {
 
     for (const streamer of twitchStreamers) {
         try {
+            const twitchOAuthToken = await getTwitchOAuthToken(guildId);
             const response = await fetch(`https://api.twitch.tv/helix/streams?user_login=${streamer}`, {
                 headers: {
-                    'Client-ID': 'your_twitch_client_id',
-                    'Authorization': 'Bearer your_twitch_oauth_token'
+                    'Client-ID': config.twitchClientId,
+                    'Authorization': `Bearer ${twitchOAuthToken}`
                 }
             });
             const data = await response.json();

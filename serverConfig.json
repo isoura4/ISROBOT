@@ -1,3 +1,16 @@
 {
-  "servers": {}
+  "servers": {
+    "1178583138209890334": {
+      "blueskyChannelId": null,
+      "mentionRoleId": null,
+      "blueskyHandle": null,
+      "twitchStreamers": [
+        "streamingourzoo",
+        "aypierre"
+      ],
+      "twitchAnnounceChannelId": "1318491524010479677",
+      "twitchMentionRoleId": "1178583138209890334",
+      "twitchOAuthToken": "pq73pdbrf56v1rybrnpjh5idrx7od2"
+    }
+  }
 }
