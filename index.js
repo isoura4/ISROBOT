@@ -48,19 +48,23 @@ const registerCommands = async (guildId) => {
 };
 
 const createServerConfig = (guildId) => {
-    const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
-    if (!serverConfig.servers[guildId]) {
-        serverConfig.servers[guildId] = {
-            blueskyChannelId: null,
-            mentionRoleId: null,
-            blueskyHandle: null,
-            twitchStreamers: [],
-            twitchAnnounceChannelId: null,
-            twitchMentionRoleId: null,
-            twitchOAuthToken: null,
-            announcedStreams: {} // Initialiser announcedStreams
+    const serverConfigPath = path.join(__dirname, 'serverConfig.json');
+    if (!fs.existsSync(serverConfigPath)) {
+        const initialConfig = {
+            servers: {
+                [guildId]: {
+                    blueskyChannelId: null,
+                    mentionRoleId: null,
+                    blueskyHandle: null,
+                    twitchStreamers: [],
+                    twitchAnnounceChannelId: null,
+                    twitchMentionRoleId: null,
+                    twitchOAuthToken: null,
+                    announcedStreams: {} // Initialiser announcedStreams
+                }
+            }
         };
-        fs.writeFileSync('serverConfig.json', JSON.stringify(serverConfig, null, 2));
+        fs.writeFileSync(serverConfigPath, JSON.stringify(initialConfig, null, 2));
         console.log(`Configuration initiale créée pour le serveur ${guildId}.`);
     }
 };
