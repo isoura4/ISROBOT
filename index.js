@@ -1,6 +1,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const fs = require('fs');
+const path = require('path');
 const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType } = require('discord.js');
 const config = require('./config.json');
 const checkBlueskyPosts = require('./commands/checkBlueskyPosts');
@@ -14,7 +15,8 @@ const client = new Client({
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildBans,
-        GatewayIntentBits.GuildModeration
+        GatewayIntentBits.GuildModeration,
+        GatewayIntentBits.GuildScheduledEvents // Ajouter cet intent pour les événements planifiés
     ]
 });
 
@@ -96,6 +98,14 @@ const reloadCommands = async () => {
     });
 };
 
+const ensureEventsFile = () => {
+    const eventsPath = path.join(__dirname, 'events.json');
+    if (!fs.existsSync(eventsPath)) {
+        fs.writeFileSync(eventsPath, JSON.stringify({}, null, 2));
+        console.log('Fichier events.json créé.');
+    }
+};
+
 client.once('ready', async () => {
     console.log(`Bot connecté en tant que ${client.user.tag}`);
 
@@ -134,6 +144,57 @@ client.once('ready', async () => {
             }],
             status: 'online'
         });
+    }, 60000); // 60000 millisecondes = 1 minute
+
+    // Vérifier les rappels et supprimer les événements terminés toutes les minutes
+    setInterval(async () => {
+        ensureEventsFile();
+        const events = JSON.parse(fs.readFileSync(path.join(__dirname, 'events.json'), 'utf8'));
+        const now = new Date();
+
+        for (const eventId in events) {
+            const event = events[eventId];
+            const eventEndDate = new Date(`${event.date}T${event.endTime}:00`);
+            const timeDiff = eventEndDate - now;
+
+            // Vérifier les rappels
+            event.reminders.forEach(reminder => {
+                if (timeDiff === reminder.time * 60 * 1000) {
+                    const channel = client.channels.cache.get(event.channelId);
+                    if (channel) {
+                        const embed = new EmbedBuilder()
+                            .setTitle(`Rappel pour l'événement "${event.title}"`)
+                            .setDescription(`L'événement "${event.title}" commence dans ${reminder.time} minutes.`)
+                            .setColor(0x00ff00)
+                            .setTimestamp(new Date().toISOString())
+                            .setFooter({ text: '© 2023 Votre Bot Discord' });
+
+                        const userIds = reminder.userIds.map(id => `<@${id}>`).join(' ');
+                        const roleIds = reminder.roleIds.map(id => `<@&${id}>`).join(' ');
+                        const content = `${userIds} ${roleIds}`;
+
+                        channel.send({ content, embeds: [embed] });
+                    }
+                }
+            });
+
+            // Supprimer les événements terminés
+            if (timeDiff <= 0) {
+                const channel = client.channels.cache.get(event.channelId);
+                if (channel) {
+                    const embed = new EmbedBuilder()
+                        .setTitle(`Fin de l'événement "${event.title}"`)
+                        .setDescription(`L'événement "${event.title}" est maintenant terminé.`)
+                        .setColor(0xff0000)
+                        .setTimestamp(new Date().toISOString())
+                        .setFooter({ text: '© 2023 Votre Bot Discord' });
+
+                    channel.send({ embeds: [embed] });
+                }
+                delete events[eventId];
+                fs.writeFileSync(path.join(__dirname, 'events.json'), JSON.stringify(events, null, 2));
+            }
+        }
     }, 60000); // 60000 millisecondes = 1 minute
 });
 

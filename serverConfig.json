@@ -17,6 +17,16 @@
         "43387177832": true,
         "43387031288": true
       }
+    },
+    "943813052023832607": {
+      "blueskyChannelId": null,
+      "mentionRoleId": null,
+      "blueskyHandle": null,
+      "twitchStreamers": [],
+      "twitchAnnounceChannelId": null,
+      "twitchMentionRoleId": null,
+      "twitchOAuthToken": null,
+      "announcedStreams": {}
     }
   }
 }
