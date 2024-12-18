@@ -1,23 +1,5 @@
 {
   "servers": {
-    "1178583138209890334": {
-      "blueskyChannelId": null,
-      "mentionRoleId": null,
-      "blueskyHandle": null,
-      "twitchStreamers": [
-        "streamingourzoo",
-        "aypierre",
-        "thecoffeeelf"
-      ],
-      "twitchAnnounceChannelId": "1318491524010479677",
-      "twitchMentionRoleId": "1178583138209890334",
-      "twitchOAuthToken": "pq73pdbrf56v1rybrnpjh5idrx7od2",
-      "announcedStreams": {
-        "45183214251": true,
-        "43387177832": true,
-        "43387031288": true
-      }
-    },
     "943813052023832607": {
       "blueskyChannelId": null,
       "mentionRoleId": null,
