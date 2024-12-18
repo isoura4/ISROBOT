@@ -30,14 +30,14 @@ module.exports = {
             .setTitle(event.name)
             .setDescription(event.description)
             .addFields(
-                { name: 'Date', value: event.scheduledStartTimestamp.toLocaleString(), inline: true },
-                { name: 'Heure de début', value: event.scheduledStartTimestamp.toLocaleTimeString(), inline: true },
-                { name: 'Heure de fin', value: event.scheduledEndTimestamp.toLocaleTimeString(), inline: true },
+                { name: 'Date', value: new Date(event.scheduledStartTimestamp).toLocaleString(), inline: true },
+                { name: 'Heure de début', value: new Date(event.scheduledStartTimestamp).toLocaleTimeString(), inline: true },
+                { name: 'Heure de fin', value: new Date(event.scheduledEndTimestamp).toLocaleTimeString(), inline: true },
                 { name: 'Lieu', value: `<#${event.channelId}>`, inline: true }
             )
             .setImage(event.image ? event.image : null)
             .setColor(0x00ff00)
-            .setTimestamp(event.scheduledStartTimestamp);
+            .setTimestamp(new Date(event.scheduledStartTimestamp));
 
         // Envoyer l'annonce dans le salon spécifié
         await channel.send({ embeds: [embed] });
