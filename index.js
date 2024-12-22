@@ -47,24 +47,30 @@ const registerCommands = async (guildId) => {
     }
 };
 
-const createServerConfig = (guildId) => {
+const createOrUpdateServerConfig = (guildId) => {
     const serverConfigPath = path.join(__dirname, 'serverConfig.json');
-    if (!fs.existsSync(serverConfigPath)) {
-        const initialConfig = {
-            servers: {
-                [guildId]: {
-                    blueskyChannelId: null,
-                    mentionRoleId: null,
-                    blueskyHandle: null,
-                    twitchStreamers: [],
-                    twitchAnnounceChannelId: null,
-                    twitchMentionRoleId: null,
-                    twitchOAuthToken: null,
-                    announcedStreams: {} // Initialiser announcedStreams
-                }
-            }
+    let serverConfig = {};
+
+    if (fs.existsSync(serverConfigPath)) {
+        serverConfig = JSON.parse(fs.readFileSync(serverConfigPath, 'utf8'));
+    }
+
+    if (!serverConfig.servers) {
+        serverConfig.servers = {};
+    }
+
+    if (!serverConfig.servers[guildId]) {
+        serverConfig.servers[guildId] = {
+            blueskyChannelId: null,
+            mentionRoleId: null,
+            blueskyHandle: null,
+            twitchStreamers: [],
+            twitchAnnounceChannelId: null,
+            twitchMentionRoleId: null,
+            twitchOAuthToken: null,
+            announcedStreams: {} // Initialiser announcedStreams
         };
-        fs.writeFileSync(serverConfigPath, JSON.stringify(initialConfig, null, 2));
+        fs.writeFileSync(serverConfigPath, JSON.stringify(serverConfig, null, 2));
         console.log(`Configuration initiale créée pour le serveur ${guildId}.`);
     }
 };
@@ -113,9 +119,9 @@ const ensureEventsFile = () => {
 client.once('ready', async () => {
     console.log(`Bot connecté en tant que ${client.user.tag}`);
 
-    // Créer les configurations initiales pour tous les serveurs où le bot est présent
+    // Créer ou mettre à jour les configurations initiales pour tous les serveurs où le bot est présent
     client.guilds.cache.forEach(guild => {
-        createServerConfig(guild.id);
+        createOrUpdateServerConfig(guild.id);
         registerCommands(guild.id);
     });
 
@@ -203,7 +209,7 @@ client.once('ready', async () => {
 });
 
 client.on('guildCreate', async guild => {
-    createServerConfig(guild.id);
+    createOrUpdateServerConfig(guild.id);
     await registerCommands(guild.id);
     console.log(`Le bot a rejoint un nouveau serveur : ${guild.name} (${guild.id})`);
 });
