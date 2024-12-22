@@ -4,7 +4,7 @@ Ce bot Discord est conçu pour intégrer diverses fonctionnalités, y compris l'
 
 Si vous voulez essayer le bot sans l'héberger vous-même, vous pouvez l'inviter à votre serveur en utilisant le lien suivant :
 
-[Inviter le Bot](https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&scope=bot&permissions=YOUR_PERMISSIONS)
+[Inviter le Bot](https://discord.com/oauth2/authorize?client_id=1318211219542511617)
 
 ![image](https://github.com/user-attachments/assets/3a091324-5c63-4c3e-8c8e-02bc431eceb1)
 
