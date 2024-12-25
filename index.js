@@ -3,6 +3,10 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType } = require('discord.js');
+const config = require('./config.json');
+const checkBlueskyPosts = require('./commands/checkBlueskyPosts');
+const checkTwitchStreams = require('./commands/checkTwitchStreams');
+const { getCounter, setCounter } = require('./utils/counter');
 
 const app = express();
 const client = new Client({
@@ -29,13 +33,13 @@ for (const file of commandFiles) {
 }
 
 // Enregistrer les commandes slash pour chaque serveur
-const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+const rest = new REST({ version: '10' }).setToken(config.token);
 
 const registerCommands = async (guildId) => {
     try {
         console.log(`Enregistrement des commandes slash pour le serveur ${guildId}...`);
         await rest.put(
-            Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, guildId),
+            Routes.applicationGuildCommands(config.clientId, guildId),
             { body: client.commands.map(command => command.data.toJSON()) }
         );
         console.log(`Commandes slash enregistrées avec succès pour le serveur ${guildId}.`);
@@ -85,7 +89,7 @@ const getTwitchOAuthToken = async (guildId) => {
     const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
     if (!serverConfig.servers[guildId].twitchOAuthToken) {
         try {
-            const response = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`, {
+            const response = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${config.twitchClientId}&client_secret=${config.twitchClientSecret}&grant_type=client_credentials`, {
                 method: 'POST'
             });
             const data = await response.json();
@@ -117,12 +121,12 @@ const ensureConfigFile = () => {
     const configPath = path.join(__dirname, 'config.json');
     if (!fs.existsSync(configPath)) {
         const initialConfig = {
-            token: process.env.DISCORD_TOKEN || 'your_discord_bot_token',
-            clientId: process.env.DISCORD_CLIENT_ID || 'your_discord_client_id',
-            blueskyHandle: process.env.BLUESKY_HANDLE || 'your_bluesky_handle',
-            blueskyAppPassword: process.env.BLUESKY_APP_PASSWORD || 'your_bluesky_app_password',
-            twitchClientId: process.env.TWITCH_CLIENT_ID || 'your_twitch_client_id',
-            twitchClientSecret: process.env.TWITCH_CLIENT_SECRET || 'your_twitch_client_secret'
+            token: config.token || 'your_discord_bot_token',
+            clientId: config.clientId || 'your_discord_client_id',
+            blueskyHandle: config.blueskyHandle || 'your_bluesky_handle',
+            blueskyAppPassword: config.blueskyAppPassword || 'your_bluesky_app_password',
+            twitchClientId: config.twitchClientId || 'your_twitch_client_id',
+            twitchClientSecret: config.twitchClientSecret || 'your_twitch_client_secret'
         };
         fs.writeFileSync(configPath, JSON.stringify(initialConfig, null, 2));
         console.log('Fichier config.json créé.');
@@ -154,7 +158,7 @@ client.once('ready', async () => {
         const start = Date.now();
         await fetch('https://discord.com/api/v10/users/@me', {
             headers: {
-                Authorization: `Bot ${process.env.DISCORD_TOKEN}`
+                Authorization: `Bot ${config.token}`
             }
         });
         const end = Date.now();
@@ -244,6 +248,30 @@ client.on('interactionCreate', async interaction => {
     } catch (error) {
         console.error(error);
         await interaction.reply({ content: 'Il y a eu une erreur en essayant d\'exécuter cette commande.', ephemeral: true });
+    }
+});
+
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+
+    const { count, lastUser } = getCounter();
+    const expectedNumber = count + 1;
+
+    if (message.content === expectedNumber.toString()) {
+        if (lastUser === message.author.id) {
+            setCounter(0, null);
+            await message.react('❌');
+            await message.reply('Une même personne ne peut pas répondre deux fois. On recommence de zéro !');
+        } else {
+            setCounter(expectedNumber, message.author.id);
+            await message.react('✅');
+        }
+    } else if (message.content !== expectedNumber.toString() && lastUser === message.author.id) {
+        setCounter(0, null);
+        await message.react('❌');
+        await message.reply('Le compteur reprend à zéro ! Recommençons.');
+    } else {
+        await message.react('❌');
     }
 });
 
