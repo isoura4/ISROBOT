@@ -6,6 +6,7 @@ const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType } = re
 const config = require('./config.json');
 const checkBlueskyPosts = require('./commands/checkBlueskyPosts');
 const checkTwitchStreams = require('./commands/checkTwitchStreams');
+const { getCounter, setCounter } = require('./utils/counter');
 
 const app = express();
 const client = new Client({
@@ -113,6 +114,22 @@ const ensureEventsFile = () => {
     if (!fs.existsSync(eventsPath)) {
         fs.writeFileSync(eventsPath, JSON.stringify({}, null, 2));
         console.log('Fichier events.json créé.');
+    }
+};
+
+const ensureConfigFile = () => {
+    const configPath = path.join(__dirname, 'config.json');
+    if (!fs.existsSync(configPath)) {
+        const initialConfig = {
+            token: config.token || 'your_discord_bot_token',
+            clientId: config.clientId || 'your_discord_client_id',
+            blueskyHandle: config.blueskyHandle || 'your_bluesky_handle',
+            blueskyAppPassword: config.blueskyAppPassword || 'your_bluesky_app_password',
+            twitchClientId: config.twitchClientId || 'your_twitch_client_id',
+            twitchClientSecret: config.twitchClientSecret || 'your_twitch_client_secret'
+        };
+        fs.writeFileSync(configPath, JSON.stringify(initialConfig, null, 2));
+        console.log('Fichier config.json créé.');
     }
 };
 
@@ -233,6 +250,36 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply({ content: 'Il y a eu une erreur en essayant d\'exécuter cette commande.', ephemeral: true });
     }
 });
+
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+
+    const { count, lastUser } = getCounter();
+    const expectedNumber = count + 1;
+
+    if (message.content === expectedNumber.toString()) {
+        if (lastUser === message.author.id) {
+            setCounter(0, null);
+            await message.react('❌');
+            await message.reply('Une même personne ne peut pas répondre deux fois. On recommence de zéro !');
+        } else {
+            setCounter(expectedNumber, message.author.id);
+            await message.react('✅');
+        }
+    } else if (message.content !== expectedNumber.toString() && lastUser === message.author.id) {
+        setCounter(0, null);
+        await message.react('❌');
+        await message.reply('Le compteur reprend à zéro ! Recommençons.');
+    } else {
+        await message.react('❌');
+    }
+});
+
+// Assurez-vous que le fichier config.json est présent
+ensureConfigFile();
+
+// Charger le fichier config.json
+const config = require('./config.json');
 
 client.login(config.token);
 
