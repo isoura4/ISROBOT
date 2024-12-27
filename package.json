@@ -2,9 +2,7 @@
   "name": "bot-discord",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/isoura4/bot-discord.git"
@@ -21,5 +19,11 @@
     "discord.js": "^14.16.3",
     "express": "^4.21.2",
     "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "chai": "^5.1.2",
+    "jest": "^29.7.0",
+    "mocha": "^11.0.1",
+    "sinon": "^19.0.2"
   }
 }
