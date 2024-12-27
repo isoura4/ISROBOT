@@ -3,7 +3,8 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType } = require('discord.js');
-const { getCounter, setCounter } = require('./utils/counter'); // Importer les fonctions
+const { getCounter, setCounter } = require('./utils/counter');
+const { checkBlueskyPosts, checkTwitchStreams } = require('./utils/checkPosts'); // Assurez-vous que ces fonctions sont définies
 
 const app = express();
 const client = new Client({
@@ -261,22 +262,25 @@ client.on('interactionCreate', async interaction => {
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
 
-    const { count, lastUser } = getCounter();
+    const guildId = message.guild.id;
+    const { count, lastUser, channelId } = getCounter(guildId);
     const expectedNumber = count + 1;
+
+    if (message.channel.id !== channelId) return;
 
     if (message.content === expectedNumber.toString()) {
         if (lastUser === message.author.id) {
-            setCounter(0, null);
+            setCounter(guildId, 0, null, channelId);
             await message.react('❌');
             await message.reply('Une même personne ne peut pas répondre deux fois. On recommence de zéro !');
         } else {
-            setCounter(expectedNumber, message.author.id);
+            setCounter(guildId, expectedNumber, message.author.id, channelId);
             await message.react('✅');
         }
     } else if (message.content !== expectedNumber.toString() && lastUser === message.author.id) {
-        setCounter(0, null);
+        setCounter(guildId, 0, null, channelId);
         await message.react('❌');
-        await message.reply('Le compteur reprend à zéro ! Recommençons.');
+        await message.reply('Tu t\'es trompé ! Le compteur reprend à zéro ! Recommençons.');
     } else {
         await message.react('❌');
     }
