@@ -3,10 +3,7 @@ const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType } = require('discord.js');
-const config = require('./config.json');
-const checkBlueskyPosts = require('./commands/checkBlueskyPosts');
-const checkTwitchStreams = require('./commands/checkTwitchStreams');
-const { getCounter, setCounter } = require('./utils/counter');
+const { getCounter, setCounter } = require('./utils/counter'); // Importer les fonctions
 
 const app = express();
 const client = new Client({
@@ -33,6 +30,14 @@ for (const file of commandFiles) {
 }
 
 // Enregistrer les commandes slash pour chaque serveur
+let config;
+try {
+    config = require('./config.json');
+} catch (error) {
+    console.error('Erreur lors du chargement de config.json:', error);
+    process.exit(1);
+}
+
 const rest = new REST({ version: '10' }).setToken(config.token);
 
 const registerCommands = async (guildId) => {
@@ -132,6 +137,8 @@ const ensureConfigFile = () => {
         console.log('Fichier config.json créé.');
     }
 };
+
+ensureConfigFile();
 
 client.once('ready', async () => {
     console.log(`Bot connecté en tant que ${client.user.tag}`);
@@ -274,12 +281,6 @@ client.on('messageCreate', async message => {
         await message.react('❌');
     }
 });
-
-// Assurez-vous que le fichier config.json est présent
-ensureConfigFile();
-
-// Charger le fichier config.json
-const config = require('./config.json');
 
 client.login(config.token);
 
