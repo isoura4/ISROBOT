@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, PermissionFlagsBits, PermissionsBitField } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -114,13 +114,12 @@ module.exports = {
                 )
         ),
     async execute(interaction) {
-        const subcommand = interaction.options.getSubcommand();
-
-        // Vérifier les permissions de l'utilisateur
-        const hasPermission = interaction.member.permissions.has(PermissionFlagsBits[subcommand.toUpperCase()]);
-        if (!hasPermission) {
-            return interaction.reply({ content: `Vous n'avez pas la permission d'exécuter cette commande.`, ephemeral: true });
+        // Vérifier si l'utilisateur a les droits d'administrateur
+        if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            return interaction.reply({ content: 'Vous n\'avez pas les droits nécessaires pour utiliser cette commande.', ephemeral: true });
         }
+
+        const subcommand = interaction.options.getSubcommand();
 
         switch (subcommand) {
             case 'kick':
@@ -158,7 +157,7 @@ async function kickUser(interaction) {
     const reason = interaction.options.getString('reason') || 'Aucune raison fournie.';
 
     try {
-        await interaction.guild.members.kick(user, reason);
+        await interaction.guild.members.kick(user, { reason: reason });
         await interaction.reply({ content: `Le membre ${user.tag} a été expulsé avec succès.`, ephemeral: true });
     } catch (error) {
         console.error(error);

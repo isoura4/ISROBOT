@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const getTwitchOAuthToken = require('../utils/getTwitchOAuthToken');
@@ -14,6 +14,11 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
+        // Vérifier si l'utilisateur a les droits d'administrateur ou si l'interaction est initiée par le bot
+        if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator) && !interaction.user.bot) {
+            return interaction.reply({ content: 'Vous n\'avez pas les droits nécessaires pour utiliser cette commande.', ephemeral: true });
+        }
+
         const streamer = interaction.options.getString('streamer');
         const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
         const twitchStreamers = serverConfig.servers[interaction.guildId]?.twitchStreamers || [];
