@@ -11,8 +11,9 @@ module.exports = {
                 .setRequired(true)
         ),
     async execute(interaction) {
+        // Vérifier si l'utilisateur a les droits d'administrateur
         if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
-            return interaction.reply('Vous n\'avez pas la permission d\'utiliser cette commande.');
+            return interaction.reply({ content: 'Vous n\'avez pas les droits nécessaires pour utiliser cette commande.', ephemeral: true });
         }
 
         const channel = interaction.options.getChannel('channel');

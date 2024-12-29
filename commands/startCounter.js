@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { getCounter, setCounter } = require('../utils/counter');
 
 module.exports = {
@@ -11,9 +11,17 @@ module.exports = {
                 .setRequired(true)
                 .addChannelTypes(0)), // 0 for GUILD_TEXT
     async execute(interaction) {
-        const channel = interaction.options.getChannel('channel');
-        setCounter(0, null);
+        // Vérifier si l'utilisateur a les droits d'administrateur
+        if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            return interaction.reply({ content: 'Vous n\'avez pas les droits nécessaires pour utiliser cette commande.', ephemeral: true });
+        }
 
-        await interaction.reply(`Le jeu de compteur a démarré dans le salon <#${channel.id}>. Le compteur est à 0.`);
-    },
+        const channel = interaction.options.getChannel('channel');
+        const guildId = interaction.guild.id;
+
+        // Initialiser le compteur pour le salon spécifié
+        setCounter(guildId, 0, null, channel.id);
+
+        await interaction.reply(`Le jeu de compteur a été démarré dans le salon <#${channel.id}>. Le compteur est à 0.`);
+    }
 };

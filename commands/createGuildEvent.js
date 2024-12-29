@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { REST } = require('@discordjs/rest');
 const { Routes } = require('discord-api-types/v9');
 const config = require('../config.json');
@@ -46,6 +46,11 @@ module.exports = {
                     { name: 'Daily', value: 'DAILY' }
                 )),
     async execute(interaction) {
+        // Vérifier si l'utilisateur a les droits d'administrateur
+        if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator)) {
+            return interaction.reply({ content: 'Vous n\'avez pas les droits nécessaires pour utiliser cette commande.', ephemeral: true });
+        }
+
         const name = interaction.options.getString('name');
         const description = interaction.options.getString('description');
         const date = interaction.options.getString('date');

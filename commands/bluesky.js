@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const fetch = require('node-fetch');
 const fs = require('fs');
 
@@ -7,6 +7,11 @@ module.exports = {
         .setName('bluesky')
         .setDescription('Récupère et affiche les messages de Bluesky.'),
     async execute(interaction) {
+        // Vérifier si l'utilisateur a les droits d'administrateur ou si l'interaction est initiée par le bot
+        if (!interaction.member.permissions.has(PermissionFlagsBits.Administrator) && !interaction.user.bot) {
+            return interaction.reply({ content: 'Vous n\'avez pas les droits nécessaires pour utiliser cette commande.', ephemeral: true });
+        }
+
         const serverConfig = JSON.parse(fs.readFileSync('serverConfig.json', 'utf8'));
         const config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
         const channelId = serverConfig.servers[interaction.guildId]?.blueskyChannelId;
