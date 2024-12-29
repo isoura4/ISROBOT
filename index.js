@@ -4,8 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType, PermissionFlagsBits } = require('discord.js');
 const { getCounter, setCounter } = require('./utils/counter');
-const { checkBlueskyPosts } = require('./commands/checkBlueskyPosts'); // Importer la fonction
-const { checkTwitchStreams } = require('./commands/checkTwitchStreams'); // Importer la fonction
+const checkBlueskyPosts = require('./commands/checkBlueskyPosts'); // Importer la fonction
+const checkTwitchStreams = require('./commands/checkTwitchStreams'); // Importer la fonction
 
 const app = express();
 const client = new Client({
