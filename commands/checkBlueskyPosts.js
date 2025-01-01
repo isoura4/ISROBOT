@@ -93,7 +93,7 @@ async function checkBlueskyPosts(client, guildId) {
                 console.log('Aucun nouveau post trouvé.');
             }
         } else {
-            console.log('Aucun post trouvé pour cet utilisateur.');
+            console.log('Aucun post trouvé pour cet utilisateur Bluesky.');
         }
     } catch (error) {
         console.error('Erreur lors de la récupération des messages de Bluesky:', error);
