@@ -2,10 +2,10 @@ const express = require('express');
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
-const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType, PermissionFlagsBits } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, REST, Routes, ActivityType } = require('discord.js');
 const { getCounter, setCounter } = require('./utils/counter');
-const checkBlueskyPosts = require('./commands/checkBlueskyPosts'); // Importer la fonction
-const checkTwitchStreams = require('./commands/checkTwitchStreams'); // Importer la fonction
+const checkBlueskyPosts = require('./commands/checkBlueskyPosts');
+const checkTwitchStreams = require('./commands/checkTwitchStreams');
 
 const app = express();
 const client = new Client({
@@ -14,9 +14,10 @@ const client = new Client({
         GatewayIntentBits.GuildMessages,
         GatewayIntentBits.MessageContent,
         GatewayIntentBits.GuildMembers,
-        GatewayIntentBits.GuildBans,
         GatewayIntentBits.GuildModeration,
-        GatewayIntentBits.GuildScheduledEvents // Ajouter cet intent pour les événements planifiés
+        GatewayIntentBits.GuildScheduledEvents,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildEmojisAndStickers
     ]
 });
 
@@ -76,7 +77,7 @@ const createOrUpdateServerConfig = (guildId) => {
             twitchAnnounceChannelId: null,
             twitchMentionRoleId: null,
             twitchOAuthToken: null,
-            announcedStreams: {} // Initialiser announcedStreams
+            announcedStreams: {}
         };
         fs.writeFileSync(serverConfigPath, JSON.stringify(serverConfig, null, 2));
         console.log(`Configuration initiale créée pour le serveur ${guildId}.`);
@@ -145,24 +146,20 @@ ensureConfigFile();
 client.once('ready', async () => {
     console.log(`Bot connecté en tant que ${client.user.tag}`);
 
-    // Créer ou mettre à jour les configurations initiales pour tous les serveurs où le bot est présent
     client.guilds.cache.forEach(guild => {
         createOrUpdateServerConfig(guild.id);
         registerCommands(guild.id);
     });
 
-    // Vérifier les nouveaux posts de Bluesky toutes les 5 minutes
     setInterval(() => {
         client.guilds.cache.forEach(guild => {
             checkBlueskyPosts(client, guild.id);
             checkTwitchStreams(client, guild.id);
         });
-    }, 300000); // 300000 millisecondes = 5 minutes
+    }, 300000);
 
-    // Recharger les commandes toutes les 10 minutes
-    setInterval(reloadCommands, 600000); // 600000 millisecondes = 10 minutes
+    setInterval(reloadCommands, 600000);
 
-    // Définir le statut du bot
     setInterval(async () => {
         const start = Date.now();
         await fetch('https://discord.com/api/v10/users/@me', {
@@ -180,9 +177,8 @@ client.once('ready', async () => {
             }],
             status: 'online'
         });
-    }, 60000); // 60000 millisecondes = 1 minute
+    }, 60000);
 
-    // Vérifier les rappels et supprimer les événements terminés toutes les minutes
     setInterval(async () => {
         ensureEventsFile();
         const events = JSON.parse(fs.readFileSync(path.join(__dirname, 'events.json'), 'utf8'));
@@ -193,7 +189,6 @@ client.once('ready', async () => {
             const eventEndDate = new Date(`${event.date}T${event.endTime}:00`);
             const timeDiff = eventEndDate - now;
 
-            // Vérifier les rappels
             event.reminders.forEach(reminder => {
                 if (timeDiff === reminder.time * 60 * 1000) {
                     const channel = client.channels.cache.get(event.channelId);
@@ -214,7 +209,6 @@ client.once('ready', async () => {
                 }
             });
 
-            // Supprimer les événements terminés
             if (timeDiff <= 0) {
                 const channel = client.channels.cache.get(event.channelId);
                 if (channel) {
@@ -231,7 +225,7 @@ client.once('ready', async () => {
                 fs.writeFileSync(path.join(__dirname, 'events.json'), JSON.stringify(events, null, 2));
             }
         }
-    }, 60000); // 60000 millisecondes = 1 minute
+    }, 60000);
 });
 
 client.on('guildCreate', async guild => {
@@ -260,6 +254,8 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
+const messageCache = new Map();
+
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
 
@@ -268,6 +264,10 @@ client.on('messageCreate', async message => {
     const expectedNumber = count + 1;
 
     if (message.channel.id !== channelId) return;
+
+    if (messageCache.has(message.id)) return;
+
+    messageCache.set(message.id, true);
 
     if (message.content === expectedNumber.toString()) {
         if (lastUser === message.author.id) {
@@ -278,18 +278,46 @@ client.on('messageCreate', async message => {
             setCounter(guildId, expectedNumber, message.author.id, channelId);
             await message.react('✅');
         }
-    } else if (message.content !== expectedNumber.toString() && lastUser === message.author.id) {
+        messageCache.delete(message.id);
+    } else {
         setCounter(guildId, 0, null, channelId);
         await message.react('❌');
         await message.reply('Tu t\'es trompé ! Le compteur reprend à zéro ! Recommençons.');
+    }
+});
+
+client.on('messageUpdate', async (oldMessage, newMessage) => {
+    if (newMessage.author.bot) return;
+
+    const guildId = newMessage.guild.id;
+    const { count, lastUser, channelId } = getCounter(guildId);
+    const expectedNumber = count + 1;
+
+    if (newMessage.channel.id !== channelId) return;
+
+    if (messageCache.has(newMessage.id)) return;
+
+    messageCache.set(newMessage.id, true);
+
+    if (newMessage.content === expectedNumber.toString()) {
+        if (lastUser === newMessage.author.id) {
+            setCounter(guildId, 0, null, channelId);
+            await newMessage.react('❌');
+            await newMessage.reply('Une même personne ne peut pas répondre deux fois. On recommence de zéro !');
+        } else {
+            setCounter(guildId, expectedNumber, newMessage.author.id, channelId);
+            await newMessage.react('✅');
+        }
+        messageCache.delete(newMessage.id);
     } else {
-        await message.react('❌');
+        setCounter(guildId, 0, null, channelId);
+        await newMessage.react('❌');
+        await newMessage.reply('Tu t\'es trompé ! Le compteur reprend à zéro ! Recommençons.');
     }
 });
 
 client.login(config.token);
 
-// Gérer le flux OAuth
 app.get('/auth/twitch', (req, res) => {
     const redirectUri = `https://id.twitch.tv/oauth2/authorize?client_id=${config.twitchClientId}&redirect_uri=${encodeURIComponent('http://localhost:3000/callback')}&response_type=code&scope=user:read:follows`;
     res.redirect(redirectUri);
@@ -297,7 +325,7 @@ app.get('/auth/twitch', (req, res) => {
 
 app.get('/callback', async (req, res) => {
     const code = req.query.code;
-    const guildId = req.query.state; // Assurez-vous de passer l'ID du serveur dans l'URL de redirection
+    const guildId = req.query.state;
     try {
         const response = await fetch(`https://id.twitch.tv/oauth2/token?client_id=${config.twitchClientId}&client_secret=${config.twitchClientSecret}&code=${code}&grant_type=authorization_code&redirect_uri=${encodeURIComponent('http://localhost:3000/callback')}`, {
             method: 'POST'
