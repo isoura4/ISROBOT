@@ -1,23 +1,25 @@
-const { REST } = require('@discordjs/rest');
-const { Routes } = require('discord-api-types/v9');
-const fs = require('fs');
-require('dotenv').config();
+import { REST } from '@discordjs/rest';
+import { Routes } from 'discord-api-types/v9';
+import fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const commands = [];
 const commandFiles = fs.readdirSync('./src/commands').filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
-    const command = require(`./src/commands/${file}`);
+    const command = await import(`./src/commands/${file}`);
     commands.push({
-        name: command.name,
-        description: command.description,
-        options: command.options || [],
+        name: command.default.name,
+        description: command.default.description,
+        options: command.default.options || [],
     });
 }
 
 const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_TOKEN);
 
-async function deployCommands() {
+export async function deployCommands() {
     try {
         console.log('Started refreshing application (/) commands.');
 
@@ -31,5 +33,3 @@ async function deployCommands() {
         console.error(error);
     }
 }
-
-module.exports = { deployCommands };

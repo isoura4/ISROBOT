@@ -1,7 +1,7 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
-const stateFilePath = path.join(__dirname, 'language-state.json');
+const stateFilePath = path.join(path.dirname(new URL(import.meta.url).pathname), 'language-state.json');
 
 let languageState = {
     language: 'en'
@@ -24,7 +24,7 @@ function saveLanguageState() {
 
 loadLanguageState();
 
-module.exports = {
+export default {
     name: 'language',
     description: 'Change the bot language',
     options: [

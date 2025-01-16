@@ -1,6 +1,6 @@
-const { EmbedBuilder } = require('discord.js');
+import { EmbedBuilder } from 'discord.js';
 
-module.exports = {
+export default {
     name: 'ping',
     description: 'Measures the ping between the Discord server and the bot.',
     async execute(interaction, dialogues) {

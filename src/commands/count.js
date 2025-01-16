@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 let gameState = {
     currentNumber: 0,
@@ -7,7 +7,7 @@ let gameState = {
     gameChannelId: null
 };
 
-const stateFilePath = path.join(__dirname, 'count-state.json');
+const stateFilePath = path.join(path.dirname(new URL(import.meta.url).pathname), 'count-state.json');
 
 // Load the game state from the file
 function loadGameState() {
@@ -24,7 +24,7 @@ function saveGameState() {
 
 loadGameState();
 
-module.exports = {
+export default {
     name: 'count',
     description: 'Start the counting game',
     options: [

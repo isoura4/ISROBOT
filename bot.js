@@ -1,10 +1,16 @@
-const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+import { Client, GatewayIntentBits, Collection, ActivityType } from 'discord.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+import { deployCommands } from './deploy-commands.js';
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load and execute deploy-commands.js
-const { deployCommands } = require('./deploy-commands');
 deployCommands();
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildPresences] });
@@ -34,8 +40,8 @@ if (!dialogues[languageState.language]) {
 const commandFiles = fs.readdirSync('./src/commands').filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
-    const command = require(`./src/commands/${file}`);
-    client.commands.set(command.name, command);
+    const command = await import(`./src/commands/${file}`);
+    client.commands.set(command.default.name, command.default);
 }
 
 client.once('ready', () => {

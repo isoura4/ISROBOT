@@ -1,12 +1,14 @@
-const { EmbedBuilder } = require('discord.js');
-const fetch = require('node-fetch');
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
+import { EmbedBuilder } from 'discord.js';
+import fetch from 'node-fetch';
+import axios from 'axios';
+import fs from 'fs';
+import path from 'path';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 let streamCheckInterval = null;
-const stateFilePath = path.join(__dirname, 'stream-state.json');
+const stateFilePath = path.join(path.dirname(new URL(import.meta.url).pathname), 'stream-state.json');
 
 let streamState = {
     twitch: {
@@ -36,7 +38,7 @@ function saveStreamState() {
 
 loadStreamState();
 
-module.exports = {
+export default {
     name: 'stream',
     description: 'Set up stream or post checking functionality',
     options: [

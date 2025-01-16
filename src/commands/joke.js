@@ -1,6 +1,6 @@
-const axios = require('axios');
+import axios from 'axios';
 
-module.exports = {
+export default {
     name: 'joke',
     description: 'Tells a random joke',
     async execute(interaction, dialogues) {
