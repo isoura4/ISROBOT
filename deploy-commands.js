@@ -17,7 +17,7 @@ for (const file of commandFiles) {
 
 const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_TOKEN);
 
-(async () => {
+async function deployCommands() {
     try {
         console.log('Started refreshing application (/) commands.');
 
@@ -30,4 +30,6 @@ const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_TOKEN);
     } catch (error) {
         console.error(error);
     }
-})();
+}
+
+module.exports = { deployCommands };

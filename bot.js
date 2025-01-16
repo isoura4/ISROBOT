@@ -3,6 +3,10 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Load and execute deploy-commands.js
+const { deployCommands } = require('./deploy-commands');
+deployCommands();
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildPresences] });
 client.commands = new Collection();
 
