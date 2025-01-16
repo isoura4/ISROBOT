@@ -10,28 +10,29 @@ const commandFiles = fs.readdirSync('./src/commands').filter(file => file.endsWi
 
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
-    client.commands.set(command.name, command);
+    client.commands.set(command.data.name, command);
 }
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
+    const guild = client.guilds.cache.get(process.env.GUILD_ID);
+    if (guild) {
+        guild.commands.set(client.commands.map(command => command.data));
+    }
 });
 
-client.on('messageCreate', message => {
-    if (!message.content.startsWith('!') || message.author.bot) return;
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isCommand()) return;
 
-    const args = message.content.slice(1).split(/ +/);
-    const commandName = args.shift().toLowerCase();
+    const command = client.commands.get(interaction.commandName);
 
-    if (!client.commands.has(commandName)) return;
-
-    const command = client.commands.get(commandName);
+    if (!command) return;
 
     try {
-        command.execute(message, args);
+        await command.execute(interaction);
     } catch (error) {
         console.error(error);
-        message.reply('There was an error trying to execute that command!');
+        await interaction.reply({ content: 'There was an error executing that command.', ephemeral: true });
     }
 });
 
