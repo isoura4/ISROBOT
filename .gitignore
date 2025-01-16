@@ -132,3 +132,4 @@ dist
 # Data
 count-state.json
 stream-state.json
+language-state.json
