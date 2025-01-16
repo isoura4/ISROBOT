@@ -35,13 +35,13 @@ module.exports = {
             required: true,
         },
     ],
-    async execute(interaction) {
+    async execute(interaction, dialogues) {
         const channel = interaction.options.getChannel('channel');
 
         gameState.gameChannelId = channel.id;
         gameState.currentNumber = 0;
         gameState.lastUser = null;
         saveGameState(); // Save the game state after setting the channel
-        await interaction.reply(`Let's start counting in <#${gameState.gameChannelId}>! The first number is 0.`);
+        await interaction.reply(dialogues.count.start.replace('{channelId}', gameState.gameChannelId));
     }
 };

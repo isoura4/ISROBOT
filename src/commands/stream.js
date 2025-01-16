@@ -65,9 +65,9 @@ module.exports = {
             required: false,
         },
     ],
-    async execute(interaction) {
+    async execute(interaction, dialogues) {
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
-            return interaction.reply('You do not have permission to use this command.');
+            return interaction.reply(dialogues.stream.no_permission);
         }
 
         const platform = interaction.options.getString('platform').toLowerCase();
@@ -84,7 +84,7 @@ module.exports = {
             streamState.bluesky.streamerName = streamerName;
             streamState.bluesky.roleId = roleId;
         } else {
-            return interaction.reply('Invalid platform. Please choose either "twitch" or "bluesky".');
+            return interaction.reply(dialogues.stream.invalid_platform);
         }
 
         saveStreamState();
@@ -101,8 +101,8 @@ module.exports = {
                     if (channel) {
                         const embed = new EmbedBuilder()
                             .setColor('#0099ff')
-                            .setTitle(`${streamState.twitch.streamerName} is live on Twitch!`)
-                            .setDescription(`Check out the stream: ${getStreamUrl('twitch', streamState.twitch.streamerName)}`);
+                            .setTitle(dialogues.stream.twitch_live_title.replace('{streamerName}', streamState.twitch.streamerName))
+                            .setDescription(dialogues.stream.twitch_live_description.replace('{streamUrl}', getStreamUrl('twitch', streamState.twitch.streamerName)));
                         if (streamState.twitch.roleId) {
                             channel.send({ content: `<@&${streamState.twitch.roleId}>`, embeds: [embed] });
                         } else {
@@ -119,8 +119,8 @@ module.exports = {
                     if (channel) {
                         const embed = new EmbedBuilder()
                             .setColor('#0099ff')
-                            .setTitle(`${streamState.bluesky.streamerName} has a new post on Bluesky!`)
-                            .setDescription(`Check out the post: ${newPost.url}`);
+                            .setTitle(dialogues.stream.bluesky_post_title.replace('{streamerName}', streamState.bluesky.streamerName))
+                            .setDescription(dialogues.stream.bluesky_post_description.replace('{postUrl}', newPost.url));
                         if (streamState.bluesky.roleId) {
                             channel.send({ content: `<@&${streamState.bluesky.roleId}>`, embeds: [embed] });
                         } else {
@@ -131,7 +131,7 @@ module.exports = {
             }
         }, 300000); // Check every 5 minutes
 
-        interaction.reply(`Stream or post checking set up for ${streamerName} on ${platform} in channel <#${streamChannelId}>.`);
+        interaction.reply(dialogues.stream.setup_success.replace('{streamerName}', streamerName).replace('{platform}', platform).replace('{channelId}', streamChannelId));
     }
 };
 
