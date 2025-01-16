@@ -5,22 +5,46 @@ let streamCheckInterval = null;
 let streamChannelId = null;
 let streamerName = null;
 let platform = null;
+let roleId = null;
 
 module.exports = {
     name: 'stream',
     description: 'Set up stream or post checking functionality',
-    async execute(message, args) {
-        if (!message.member.permissions.has('ADMINISTRATOR')) {
-            return message.reply('You do not have permission to use this command.');
+    options: [
+        {
+            name: 'channel_id',
+            type: 'STRING',
+            description: 'The ID of the channel to send notifications to',
+            required: true,
+        },
+        {
+            name: 'platform',
+            type: 'STRING',
+            description: 'The platform to check (twitch or bluesky)',
+            required: true,
+        },
+        {
+            name: 'streamer_name',
+            type: 'STRING',
+            description: 'The name of the streamer or Bluesky user',
+            required: true,
+        },
+        {
+            name: 'role_id',
+            type: 'STRING',
+            description: 'The ID of the role to ping (optional)',
+            required: false,
+        },
+    ],
+    async execute(interaction) {
+        if (!interaction.member.permissions.has('ADMINISTRATOR')) {
+            return interaction.reply('You do not have permission to use this command.');
         }
 
-        if (args.length < 3) {
-            return message.reply('Usage: !stream <channel_id> <platform> <streamer_name>');
-        }
-
-        streamChannelId = args[0];
-        platform = args[1].toLowerCase();
-        streamerName = args[2];
+        streamChannelId = interaction.options.getString('channel_id');
+        platform = interaction.options.getString('platform').toLowerCase();
+        streamerName = interaction.options.getString('streamer_name');
+        roleId = interaction.options.getString('role_id') || null;
 
         if (streamCheckInterval) {
             clearInterval(streamCheckInterval);
@@ -29,30 +53,38 @@ module.exports = {
         streamCheckInterval = setInterval(async () => {
             const isLive = await checkStreamStatus(platform, streamerName);
             if (isLive) {
-                const channel = message.guild.channels.cache.get(streamChannelId);
+                const channel = interaction.guild.channels.cache.get(streamChannelId);
                 if (channel) {
                     const embed = new MessageEmbed()
                         .setColor('#0099ff')
                         .setTitle(`${streamerName} is live on ${platform}!`)
                         .setDescription(`Check out the stream: ${getStreamUrl(platform, streamerName)}`);
-                    channel.send({ embeds: [embed] });
+                    if (roleId) {
+                        channel.send({ content: `<@&${roleId}>`, embeds: [embed] });
+                    } else {
+                        channel.send({ embeds: [embed] });
+                    }
                 }
             } else if (platform === 'bluesky') {
                 const newPost = await checkBlueskyPosts(streamerName);
                 if (newPost) {
-                    const channel = message.guild.channels.cache.get(streamChannelId);
+                    const channel = interaction.guild.channels.cache.get(streamChannelId);
                     if (channel) {
                         const embed = new MessageEmbed()
                             .setColor('#0099ff')
                             .setTitle(`${streamerName} has a new post on Bluesky!`)
                             .setDescription(`Check out the post: ${newPost.url}`);
-                        channel.send({ embeds: [embed] });
+                        if (roleId) {
+                            channel.send({ content: `<@&${roleId}>`, embeds: [embed] });
+                        } else {
+                            channel.send({ embeds: [embed] });
+                        }
                     }
                 }
             }
         }, 300000); // Check every 5 minutes
 
-        message.reply(`Stream or post checking set up for ${streamerName} on ${platform} in channel <#${streamChannelId}>.`);
+        interaction.reply(`Stream or post checking set up for ${streamerName} on ${platform} in channel <#${streamChannelId}>.`);
     }
 };
 

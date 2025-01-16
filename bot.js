@@ -10,15 +10,11 @@ const commandFiles = fs.readdirSync('./src/commands').filter(file => file.endsWi
 
 for (const file of commandFiles) {
     const command = require(`./commands/${file}`);
-    client.commands.set(command.data.name, command);
+    client.commands.set(command.name, command);
 }
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    const guild = client.guilds.cache.get(process.env.GUILD_ID);
-    if (guild) {
-        guild.commands.set(client.commands.map(command => command.data));
-    }
 });
 
 client.on('interactionCreate', async interaction => {
