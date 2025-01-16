@@ -1,6 +1,6 @@
 # My Discord Bot
 
-This is a simple Discord bot built with Node.js. It responds to commands and can be extended with additional features.
+This is a versatile Discord bot built with Node.js. It supports various commands and can be extended with additional features. The bot is designed to enhance your Discord server with fun and useful functionalities, such as telling jokes, managing games, and integrating with external services like Twitch and Bluesky.
 
 ## Table of Contents
 
@@ -38,20 +38,11 @@ node bot.js
 
 ## Commands
 
-- **ping**: Measures the ping between the Discord server and the bot.
-!ping
-
-- **count**: Starts a counting game where users must count in order without repeating numbers or answering twice in a row.
-!count
-
-
-- **bluesky**: Retrieves a Bluesky token using the credentials stored in the environment variables.
-!bluesky
-
-
-- **stream**: Sets up stream checking functionality for a specified platform and streamer. Only administrators can use this command.
-!stream <channel_id> <platform> <streamer_name>
-
+- **/ping**: Measures the ping between the Discord server and the bot.
+- **/count**: Starts a counting game where users must count in order without repeating numbers or answering twice in a row.
+- **/bluesky**: Retrieves a Bluesky token using the credentials stored in the environment variables.
+- **/stream**: Sets up stream checking functionality for a specified platform and streamer. Only administrators can use this command.
+- **/joke**: Tells a random joke to lighten the mood in the server.
 
 ## License
 

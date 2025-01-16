@@ -1,36 +1,47 @@
-let currentNumber = 0;
-let lastUser = null;
+const fs = require('fs');
+const path = require('path');
+
+let gameState = {
+    currentNumber: 0,
+    lastUser: null,
+    gameChannelId: null
+};
+
+const stateFilePath = path.join(__dirname, 'count-state.json');
+
+// Load the game state from the file
+function loadGameState() {
+    if (fs.existsSync(stateFilePath)) {
+        const data = fs.readFileSync(stateFilePath, 'utf8');
+        gameState = JSON.parse(data);
+    }
+}
+
+// Save the game state to the file
+function saveGameState() {
+    fs.writeFileSync(stateFilePath, JSON.stringify(gameState, null, 2));
+}
+
+loadGameState();
 
 module.exports = {
     name: 'count',
     description: 'Start the counting game',
+    options: [
+        {
+            name: 'channel',
+            type: 7, // CHANNEL
+            description: 'The channel where the counting game will take place',
+            required: true,
+        },
+    ],
     async execute(interaction) {
-        const args = interaction.options.getString('number');
-        if (!args) {
-            await interaction.reply('Let\'s start counting! The first number is 0.');
-            currentNumber = 0;
-            lastUser = null;
-        } else {
-            const number = parseInt(args, 10);
-            if (isNaN(number)) {
-                await interaction.reply('Please enter a valid number.');
-                return;
-            }
+        const channel = interaction.options.getChannel('channel');
 
-            if (interaction.user.id === lastUser) {
-                await interaction.reply('You cannot answer twice in a row!');
-                return;
-            }
-
-            if (number === currentNumber + 1) {
-                currentNumber = number;
-                lastUser = interaction.user.id;
-                await interaction.reply(`Next number is ${currentNumber + 1}`);
-            } else {
-                await interaction.reply(`Wrong number! We start again from 0.`);
-                currentNumber = 0;
-                lastUser = null;
-            }
-        }
+        gameState.gameChannelId = channel.id;
+        gameState.currentNumber = 0;
+        gameState.lastUser = null;
+        saveGameState(); // Save the game state after setting the channel
+        await interaction.reply(`Let's start counting in <#${gameState.gameChannelId}>! The first number is 0.`);
     }
 };
