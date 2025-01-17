@@ -1,7 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const stateFilePath = path.join(path.dirname(new URL(import.meta.url).pathname), 'language-state.json');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const stateFilePath = path.join(__dirname, 'language-state.json');
 
 let languageState = {
     language: 'en'
@@ -36,6 +40,10 @@ export default {
         },
     ],
     async execute(interaction) {
+        if (!interaction.member.permissions.has('ADMINISTRATOR')) {
+            return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
+        }
+
         const language = interaction.options.getString('language').toLowerCase();
 
         if (language !== 'en' && language !== 'fr') {

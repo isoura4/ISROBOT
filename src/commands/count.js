@@ -1,5 +1,9 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 let gameState = {
     currentNumber: 0,
@@ -7,7 +11,7 @@ let gameState = {
     gameChannelId: null
 };
 
-const stateFilePath = path.join(path.dirname(new URL(import.meta.url).pathname), 'count-state.json');
+const stateFilePath = path.join(__dirname, 'count-state.json');
 
 // Load the game state from the file
 function loadGameState() {
@@ -36,6 +40,10 @@ export default {
         },
     ],
     async execute(interaction, dialogues) {
+        if (!interaction.member.permissions.has('ADMINISTRATOR')) {
+            return interaction.reply({ content: dialogues.stream.no_permission, ephemeral: true });
+        }
+
         const channel = interaction.options.getChannel('channel');
 
         gameState.gameChannelId = channel.id;

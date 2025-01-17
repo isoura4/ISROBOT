@@ -69,7 +69,7 @@ export default {
     ],
     async execute(interaction, dialogues) {
         if (!interaction.member.permissions.has('ADMINISTRATOR')) {
-            return interaction.reply(dialogues.stream.no_permission);
+            return interaction.reply({ content: dialogues.stream.no_permission, ephemeral: true });
         }
 
         const platform = interaction.options.getString('platform').toLowerCase();

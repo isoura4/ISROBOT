@@ -1,12 +1,20 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-const stateFilePath = path.join(path.dirname(new URL(import.meta.url).pathname), 'stream-state.json');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const stateFilePath = path.join(__dirname, 'stream-state.json');
 
 export default {
     name: 'disable-bluesky',
     description: 'Disable Bluesky ads',
     async execute(interaction, dialogues) {
+        if (!interaction.member.permissions.has('ADMINISTRATOR')) {
+            return interaction.reply({ content: dialogues.stream.no_permission, ephemeral: true });
+        }
+
         try {
             let streamState = {
                 bluesky: {
