@@ -20,6 +20,19 @@
             "twitch_live_description": "Check out the stream: {streamUrl}",
             "bluesky_post_title": "{streamerName} has a new post on Bluesky!",
             "bluesky_post_description": "Check out the post: {postUrl}"
+        },
+        "disable_count": {
+            "success": "The counting mini-game has been disabled.",
+            "not_enabled": "The counting mini-game is not enabled.",
+            "error": "There was an error disabling the counting mini-game."
+        },
+        "disable_bluesky": {
+            "success": "Bluesky ads have been disabled.",
+            "error": "There was an error disabling Bluesky ads."
+        },
+        "disable_twitch": {
+            "success": "Twitch ads have been disabled.",
+            "error": "There was an error disabling Twitch ads."
         }
     },
     "fr": {
@@ -43,6 +56,19 @@
             "twitch_live_description": "Regardez le flux: {streamUrl}",
             "bluesky_post_title": "{streamerName} a une nouvelle publication sur Bluesky!",
             "bluesky_post_description": "Regardez la publication: {postUrl}"
+        },
+        "disable_count": {
+            "success": "Le mini-jeu de comptage a été désactivé.",
+            "not_enabled": "Le mini-jeu de comptage n'est pas activé.",
+            "error": "Une erreur s'est produite lors de la désactivation du mini-jeu de comptage."
+        },
+        "disable_bluesky": {
+            "success": "Les publicités Bluesky ont été désactivées.",
+            "error": "Une erreur s'est produite lors de la désactivation des publicités Bluesky."
+        },
+        "disable_twitch": {
+            "success": "Les publicités Twitch ont été désactivées.",
+            "error": "Une erreur s'est produite lors de la désactivation des publicités Twitch."
         }
     }
 }
