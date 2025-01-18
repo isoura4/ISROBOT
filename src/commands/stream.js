@@ -3,24 +3,25 @@ import fetch from 'node-fetch';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 let streamCheckInterval = null;
-const stateFilePath = path.join(path.dirname(new URL(import.meta.url).pathname), 'stream-state.json');
+const stateFilePath = path.join(__dirname, 'stream-state.json');
 
 let streamState = {
-    twitch: {
-        streamChannelId: null,
-        streamerName: null,
-        roleId: null
-    },
+    twitch: [],
     bluesky: {
         streamChannelId: null,
         streamerName: null,
         roleId: null
-    }
+    },
+    announcedStreams: {} // Track announced streams
 };
 
 // Load the stream state from the file
@@ -28,6 +29,9 @@ function loadStreamState() {
     if (fs.existsSync(stateFilePath)) {
         const data = fs.readFileSync(stateFilePath, 'utf8');
         streamState = JSON.parse(data);
+    }
+    if (!streamState.announcedStreams) {
+        streamState.announcedStreams = {};
     }
 }
 
@@ -37,6 +41,72 @@ function saveStreamState() {
 }
 
 loadStreamState();
+
+export function startStreamCheckInterval(interaction, dialogues) {
+    if (streamCheckInterval) {
+        clearInterval(streamCheckInterval);
+    }
+
+    streamCheckInterval = setInterval(async () => {
+        console.log('Checking stream status...');
+        const oauthToken = await getTwitchOAuthToken();
+        for (const twitchStreamer of streamState.twitch) {
+            const streamData = await checkStreamStatus('twitch', twitchStreamer.streamerName, oauthToken);
+            console.log(`Checking if ${twitchStreamer.streamerName} is live: ${streamData ? 'Yes' : 'No'}`);
+            if (streamData) {
+                const startTime = streamData.started_at;
+                if (!streamState.announcedStreams[twitchStreamer.streamerName] || streamState.announcedStreams[twitchStreamer.streamerName].startTime !== startTime) {
+                    const channel = interaction.guild.channels.cache.get(twitchStreamer.streamChannelId);
+                    if (channel) {
+                        const embed = new EmbedBuilder()
+                            .setColor('#0099ff')
+                            .setTitle(streamData.title)
+                            .setDescription(`**Channel:** ${streamData.user_name}\n**Category:** ${streamData.game_name}`)
+                            .setImage(streamData.thumbnail_url.replace('{width}', '320').replace('{height}', '180'))
+                            .setURL(getStreamUrl('twitch', twitchStreamer.streamerName));
+                        if (twitchStreamer.roleId) {
+                            await channel.send({ content: `<@&${twitchStreamer.roleId}>`, embeds: [embed] });
+                        } else {
+                            await channel.send({ embeds: [embed] });
+                        }
+                        console.log(`Notification sent for ${twitchStreamer.streamerName}`);
+                        streamState.announcedStreams[twitchStreamer.streamerName] = {
+                            announced: true,
+                            startTime: startTime
+                        }; // Mark stream as announced with start time
+                        saveStreamState();
+                    } else {
+                        console.log(`Channel not found: ${twitchStreamer.streamChannelId}`);
+                    }
+                }
+            } else {
+                // Reset the announcement status if the stream is not live
+                if (streamState.announcedStreams[twitchStreamer.streamerName]) {
+                    streamState.announcedStreams[twitchStreamer.streamerName].announced = false;
+                    saveStreamState();
+                }
+            }
+        }
+
+        if (streamState.bluesky.streamerName) {
+            const newPost = await checkBlueskyPosts(streamState.bluesky.streamerName);
+            if (newPost) {
+                const channel = interaction.guild.channels.cache.get(streamState.bluesky.streamChannelId);
+                if (channel) {
+                    const embed = new EmbedBuilder()
+                        .setColor('#0099ff')
+                        .setTitle(dialogues.stream.bluesky_post_title.replace('{streamerName}', streamState.bluesky.streamerName))
+                        .setDescription(dialogues.stream.bluesky_post_description.replace('{postUrl}', newPost.url));
+                    if (streamState.bluesky.roleId) {
+                        await channel.send({ content: `<@&${streamState.bluesky.roleId}>`, embeds: [embed] });
+                    } else {
+                        await channel.send({ embeds: [embed] });
+                    }
+                }
+            }
+        }
+    }, 300000); // Check every 5 minutes
+}
 
 export default {
     name: 'stream',
@@ -78,9 +148,17 @@ export default {
         const roleId = interaction.options.getRole('role_id') ? interaction.options.getRole('role_id').id : null;
 
         if (platform === 'twitch') {
-            streamState.twitch.streamChannelId = streamChannelId;
-            streamState.twitch.streamerName = streamerName;
-            streamState.twitch.roleId = roleId;
+            const existingStreamer = streamState.twitch.find(streamer => streamer.streamerName === streamerName);
+            if (existingStreamer) {
+                existingStreamer.streamChannelId = streamChannelId;
+                existingStreamer.roleId = roleId;
+            } else {
+                streamState.twitch.push({
+                    streamChannelId,
+                    streamerName,
+                    roleId
+                });
+            }
         } else if (platform === 'bluesky') {
             streamState.bluesky.streamChannelId = streamChannelId;
             streamState.bluesky.streamerName = streamerName;
@@ -90,65 +168,48 @@ export default {
         }
 
         saveStreamState();
-
-        if (streamCheckInterval) {
-            clearInterval(streamCheckInterval);
-        }
-
-        streamCheckInterval = setInterval(async () => {
-            if (streamState.twitch.streamerName) {
-                const isLive = await checkStreamStatus('twitch', streamState.twitch.streamerName);
-                if (isLive) {
-                    const channel = interaction.guild.channels.cache.get(streamState.twitch.streamChannelId);
-                    if (channel) {
-                        const embed = new EmbedBuilder()
-                            .setColor('#0099ff')
-                            .setTitle(dialogues.stream.twitch_live_title.replace('{streamerName}', streamState.twitch.streamerName))
-                            .setDescription(dialogues.stream.twitch_live_description.replace('{streamUrl}', getStreamUrl('twitch', streamState.twitch.streamerName)));
-                        if (streamState.twitch.roleId) {
-                            channel.send({ content: `<@&${streamState.twitch.roleId}>`, embeds: [embed] });
-                        } else {
-                            channel.send({ embeds: [embed] });
-                        }
-                    }
-                }
-            }
-
-            if (streamState.bluesky.streamerName) {
-                const newPost = await checkBlueskyPosts(streamState.bluesky.streamerName);
-                if (newPost) {
-                    const channel = interaction.guild.channels.cache.get(streamState.bluesky.streamChannelId);
-                    if (channel) {
-                        const embed = new EmbedBuilder()
-                            .setColor('#0099ff')
-                            .setTitle(dialogues.stream.bluesky_post_title.replace('{streamerName}', streamState.bluesky.streamerName))
-                            .setDescription(dialogues.stream.bluesky_post_description.replace('{postUrl}', newPost.url));
-                        if (streamState.bluesky.roleId) {
-                            channel.send({ content: `<@&${streamState.bluesky.roleId}>`, embeds: [embed] });
-                        } else {
-                            channel.send({ embeds: [embed] });
-                        }
-                    }
-                }
-            }
-        }, 300000); // Check every 5 minutes
+        startStreamCheckInterval(interaction, dialogues);
 
         interaction.reply(dialogues.stream.setup_success.replace('{streamerName}', streamerName).replace('{platform}', platform).replace('{channelId}', streamChannelId));
     }
 };
 
-async function checkStreamStatus(platform, streamerName) {
-    if (platform === 'twitch') {
-        const response = await fetch(`https://api.twitch.tv/helix/streams?user_login=${streamerName}`, {
-            headers: {
-                'Client-ID': process.env.TWITCH_CLIENT_ID,
-                'Authorization': `Bearer ${process.env.TWITCH_ACCESS_TOKEN}`
+async function getTwitchOAuthToken() {
+    try {
+        const response = await axios.post('https://id.twitch.tv/oauth2/token', null, {
+            params: {
+                client_id: process.env.TWITCH_CLIENT_ID,
+                client_secret: process.env.TWITCH_CLIENT_SECRET,
+                grant_type: 'client_credentials'
             }
         });
-        const data = await response.json();
-        return data.data && data.data.length > 0;
+        console.log('Obtained Twitch OAuth token');
+        return response.data.access_token;
+    } catch (error) {
+        console.error('Error obtaining Twitch OAuth token:', error);
+        return null;
     }
-    return false;
+}
+
+async function checkStreamStatus(platform, streamerName, oauthToken) {
+    if (platform === 'twitch') {
+        try {
+            const response = await fetch(`https://api.twitch.tv/helix/streams?user_login=${streamerName}`, {
+                headers: {
+                    'Client-ID': process.env.TWITCH_CLIENT_ID,
+                    'Authorization': `Bearer ${oauthToken}`
+                }
+            });
+            const data = await response.json();
+            console.log(`Twitch API response for ${streamerName}:`, data);
+            if (data.data && data.data.length > 0) {
+                return data.data[0]; // Return the stream data
+            }
+        } catch (error) {
+            console.error(`Error checking Twitch stream status for ${streamerName}:`, error);
+        }
+    }
+    return null;
 }
 
 async function checkBlueskyPosts(username) {

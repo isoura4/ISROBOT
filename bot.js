@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { deployCommands } from './deploy-commands.js';
+import streamCommand, { startStreamCheckInterval } from './src/commands/stream.js';
 
 dotenv.config();
 
@@ -48,6 +49,9 @@ client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
     updateBotStatus();
     setInterval(updateBotStatus, 60000); // Update status every minute
+
+    // Start the stream check interval
+    startStreamCheckInterval({ guild: client.guilds.cache.get(process.env.GUILD_ID) }, dialogues[languageState.language]);
 });
 
 client.on('interactionCreate', async interaction => {
