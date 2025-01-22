@@ -1,6 +1,6 @@
-# ISROBOT_V2
+# ISROBOT
 
-ISROBOT_V2 is a versatile Discord bot built with Node.js. It supports various commands and can be extended with additional features. The bot is designed to enhance your Discord server with fun and useful functionalities, such as telling jokes, managing games, and integrating with external services like Twitch and Bluesky.
+ISROBOT is a versatile Discord bot built with Node.js. It supports various commands and can be extended with additional features. The bot is designed to enhance your Discord server with fun and useful functionalities, such as telling jokes, managing games, and integrating with external services like Twitch and Bluesky.
 
 ## Table of Contents
 
@@ -14,12 +14,12 @@ ISROBOT_V2 is a versatile Discord bot built with Node.js. It supports various co
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/isoura4/ISROBOT_V2.git
+   git clone https://github.com/isoura4/ISROBOT.git
    ```
 
 2. Navigate to the project directory:
    ```bash
-   cd ISROBOT_V2
+   cd ISROBOT
    ```
 
 3. Install the dependencies:
