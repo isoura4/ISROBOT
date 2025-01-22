@@ -51,7 +51,7 @@ client.once('ready', () => {
     setInterval(updateBotStatus, 60000); // Update status every minute
 
     // Start the stream check interval
-    startStreamCheckInterval({ guild: client.guilds.cache.get(process.env.GUILD_ID) }, dialogues[languageState.language]);
+    startStreamCheckInterval(client.guilds.cache.get(process.env.GUILD_ID), dialogues[languageState.language]);
 });
 
 client.on('interactionCreate', async interaction => {

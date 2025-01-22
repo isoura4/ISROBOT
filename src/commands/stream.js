@@ -27,8 +27,12 @@ let streamState = {
 // Load the stream state from the file
 function loadStreamState() {
     if (fs.existsSync(stateFilePath)) {
-        const data = fs.readFileSync(stateFilePath, 'utf8');
-        streamState = JSON.parse(data);
+        try {
+            const data = fs.readFileSync(stateFilePath, 'utf8');
+            streamState = JSON.parse(data);
+        } catch (error) {
+            console.error('Error loading stream state:', error);
+        }
     }
     if (!streamState.announcedStreams) {
         streamState.announcedStreams = {};
@@ -37,12 +41,16 @@ function loadStreamState() {
 
 // Save the stream state to the file
 function saveStreamState() {
-    fs.writeFileSync(stateFilePath, JSON.stringify(streamState, null, 2));
+    try {
+        fs.writeFileSync(stateFilePath, JSON.stringify(streamState, null, 2));
+    } catch (error) {
+        console.error('Error saving stream state:', error);
+    }
 }
 
 loadStreamState();
 
-export function startStreamCheckInterval(interaction, dialogues) {
+export function startStreamCheckInterval(guild, dialogues) {
     if (streamCheckInterval) {
         clearInterval(streamCheckInterval);
     }
@@ -56,7 +64,7 @@ export function startStreamCheckInterval(interaction, dialogues) {
             if (streamData) {
                 const startTime = streamData.started_at;
                 if (!streamState.announcedStreams[twitchStreamer.streamerName] || streamState.announcedStreams[twitchStreamer.streamerName].startTime !== startTime) {
-                    const channel = interaction.guild.channels.cache.get(twitchStreamer.streamChannelId);
+                    const channel = guild.channels.cache.get(twitchStreamer.streamChannelId);
                     if (channel) {
                         const embed = new EmbedBuilder()
                             .setColor('#0099ff')
@@ -91,7 +99,7 @@ export function startStreamCheckInterval(interaction, dialogues) {
         if (streamState.bluesky.streamerName) {
             const newPost = await checkBlueskyPosts(streamState.bluesky.streamerName);
             if (newPost) {
-                const channel = interaction.guild.channels.cache.get(streamState.bluesky.streamChannelId);
+                const channel = guild.channels.cache.get(streamState.bluesky.streamChannelId);
                 if (channel) {
                     const embed = new EmbedBuilder()
                         .setColor('#0099ff')
@@ -168,7 +176,7 @@ export default {
         }
 
         saveStreamState();
-        startStreamCheckInterval(interaction, dialogues);
+        startStreamCheckInterval(interaction.guild, dialogues);
 
         interaction.reply(dialogues.stream.setup_success.replace('{streamerName}', streamerName).replace('{platform}', platform).replace('{channelId}', streamChannelId));
     }
