@@ -28,6 +28,10 @@ function saveLanguageState() {
 
 loadLanguageState();
 
+export function getLanguageState() {
+    return languageState;
+}
+
 export default {
     name: 'language',
     description: 'Change the bot language',

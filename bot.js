@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { deployCommands } from './deploy-commands.js';
 import streamCommand, { startStreamCheckInterval } from './src/commands/stream.js';
+import { getLanguageState } from './src/commands/language.js';
 
 dotenv.config();
 
@@ -18,7 +19,7 @@ const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBit
 client.commands = new Collection();
 
 // Load dialogues
-const dialogues = JSON.parse(fs.readFileSync(path.join(__dirname, 'dialogues.json'), 'utf8'));
+let dialogues = JSON.parse(fs.readFileSync(path.join(__dirname, 'dialogues.json'), 'utf8'));
 
 // Load language state
 const languageStateFilePath = path.join(__dirname, 'src/commands/language-state.json');
@@ -64,6 +65,13 @@ client.on('interactionCreate', async interaction => {
     try {
         console.log(`Executing command: ${interaction.commandName} with language: ${languageState.language}`);
         await command.execute(interaction, dialogues[languageState.language]);
+
+        // Reload dialogues if the language command was executed
+        if (interaction.commandName === 'language') {
+            languageState = getLanguageState();
+            dialogues = JSON.parse(fs.readFileSync(path.join(__dirname, 'dialogues.json'), 'utf8'));
+            console.log(`Language changed to: ${languageState.language}`);
+        }
     } catch (error) {
         console.error(error);
         if (!interaction.replied) {
