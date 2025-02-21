@@ -4,6 +4,7 @@ import { EmbedBuilder } from 'discord.js';
 export default {
     name: 'stats',
     description: 'View individual or server statistics',
+    // Removed the "user" option.
     options: [
         {
             name: 'scope',
@@ -14,13 +15,7 @@ export default {
                 { name: 'self', value: 'self' },
                 { name: 'server', value: 'server' }
             ]
-        },
-        {
-            name: 'user',
-            type: 6,
-            description: 'The user to view stats for (optional, defaults to yourself)',
-            required: false,
-        },
+        }
     ],
     async execute(interaction, dialogues) {
         const scope = interaction.options.getString('scope') || 'self';
@@ -41,7 +36,7 @@ export default {
                 `${dialogues.stats.average_xp}: ${avgXp}\n\n` +
                 `**${dialogues.stats.top_rankings}:**\n`;
             ranking.slice(0, 5).forEach((user, idx) => {
-                description += `${idx + 1}. <@${user.userId}> – Level ${user.level} (${user.xp} XP)\n`;
+                description += `${idx + 1}. ${user.userId} – Level ${user.level} (${user.xp} XP)\n`;
             });
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
@@ -49,8 +44,8 @@ export default {
                 .setDescription(description);
             await interaction.reply({ embeds: [embed] });
         } else {
-            // Personal stats
-            const targetUser = interaction.options.getUser('user') || interaction.user;
+            // Personal stats; since the "user" option is removed, we default to the interaction user.
+            const targetUser = interaction.user;
             const userStats = getUserStats(guildId, targetUser.id);
             const ranking = getServerRanking(guildId);
             const userRank = ranking.findIndex(u => u.userId === targetUser.id) + 1;
