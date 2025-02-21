@@ -14,12 +14,12 @@ ISROBOT is a versatile Discord bot built with Node.js. This bot adds fun and use
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/ISROBOT_V2.git
+   git clone https://github.com/isoura4/ISROBOT.git
    ```
 
 2. **Navigate to the project directory:**
    ```bash
-   cd ISROBOT_V2
+   cd ISROBOT
    ```
 
 3. **Install the dependencies:**
