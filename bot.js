@@ -4,7 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { deployCommands } from './deploy-commands.js';
-import streamCommand, { startStreamCheckInterval } from './src/commands/stream.js';
+import { startStreamCheckInterval } from './src/commands/stream.js';
 import { getLanguageState } from './src/commands/language.js';
 import { addMessageXp } from './src/levels.js';
 
@@ -16,17 +16,17 @@ const __dirname = path.dirname(__filename);
 // Deploy commands before client login
 deployCommands();
 
-const client = new Client({ 
+const client = new Client({
     intents: [
-        GatewayIntentBits.Guilds, 
-        GatewayIntentBits.GuildMessages, 
-        GatewayIntentBits.MessageContent, 
-        GatewayIntentBits.GuildPresences
-    ] 
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildPresences,
+    ],
 });
 client.commands = new Collection();
 
-// Load language state from file (from /src/commands/language-state.json)
+// Load language state from file
 const languageStateFilePath = path.join(__dirname, 'src/commands/language-state.json');
 let languageState = { language: 'en' };
 if (fs.existsSync(languageStateFilePath)) {
@@ -37,7 +37,7 @@ if (fs.existsSync(languageStateFilePath)) {
     console.log('Language state file not found, defaulting to English.');
 }
 
-// Load dialogues from the locales folder instead of a single file
+// Load dialogues from the locales folder
 const localesFolderPath = path.join(__dirname, 'locales');
 function loadDialogues(language) {
     const filePath = path.join(localesFolderPath, `${language}.json`);
@@ -55,7 +55,7 @@ function loadDialogues(language) {
 }
 let dialogues = loadDialogues(languageState.language);
 
-// Load command files
+// Load commands from /src/commands
 const commandFiles = fs.readdirSync('./src/commands').filter(file => file.endsWith('.js'));
 for (const file of commandFiles) {
     const command = await import(`./src/commands/${file}`);
@@ -71,13 +71,16 @@ client.once('ready', () => {
     startStreamCheckInterval(client.guilds.cache.get(process.env.GUILD_ID), dialogues);
 });
 
+// Handle interactions (slash commands)
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
     try {
-        console.log(`Executing command: ${interaction.commandName} with language: ${languageState.language}`);
+        console.log(
+            `Executing command: ${interaction.commandName} with language: ${languageState.language}`
+        );
         await command.execute(interaction, dialogues);
         // If the language command was executed, reload the state and dialogues
         if (interaction.commandName === 'language') {
@@ -93,13 +96,23 @@ client.on('interactionCreate', async interaction => {
     }
 });
 
+// Handle message events
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
     
-    // Increase XP for every message from a non-bot user
-    addMessageXp(message.guild.id, message.author.id);
+    // Increase XP for each non-bot message using message content for word count
+    const newLevel = addMessageXp(message.guild.id, message.author.id, message.content);
+    if (newLevel) {
+        try {
+            // Get the localized level-up message and replace the placeholder with the new level.
+            const levelupMessage = dialogues.levelup.replace('{level}', newLevel);
+            await message.author.send(levelupMessage);
+        } catch (err) {
+            console.error('Unable to send DM to user for level up:', err);
+        }
+    }
 
-    // Process counting game if the message is sent in the designated channel
+    // Process the counting game if the message is in the designated channel
     const gameState = loadGameState();
     if (message.channel.id !== gameState.gameChannelId) return;
 
@@ -130,6 +143,8 @@ client.on('messageCreate', async message => {
 });
 
 client.login(process.env.DISCORD_TOKEN);
+
+// Helper functions for bot.js
 
 function updateBotStatus() {
     const ping = client.ws.ping;

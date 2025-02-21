@@ -1,4 +1,5 @@
-import { getUserStats, getServerRanking, getLevelConfig } from '../levels.js';
+import { getUserStats, getServerRanking, cumulativeXpForLevel } from '../levels.js';
+import { EmbedBuilder } from 'discord.js';
 
 export default {
     name: 'stats',
@@ -6,10 +7,9 @@ export default {
     options: [
         {
             name: 'scope',
-            type: 3, // STRING
+            type: 3,
             description: 'Choose "self" for your stats or "server" for global server stats',
             required: false,
-            // You can enforce choices in Discord when registering commands
             choices: [
                 { name: 'self', value: 'self' },
                 { name: 'server', value: 'server' }
@@ -17,7 +17,7 @@ export default {
         },
         {
             name: 'user',
-            type: 6, // USER type; used only when scope is "self"
+            type: 6,
             description: 'The user to view stats for (optional, defaults to yourself)',
             required: false,
         },
@@ -34,44 +34,41 @@ export default {
                 totalXp += user.xp;
             });
             const avgXp = ranking.length > 0 ? (totalXp / ranking.length).toFixed(2) : 0;
-            const levelConfig = getLevelConfig();
-            let response = [
-                `**Server Global Stats:**`,
-                `Total users: ${ranking.length}`,
-                `Total messages: ${totalMessages}`,
-                `Total XP: ${totalXp}`,
-                `Average XP per user: ${avgXp}`,
-                ``,
-                `**Level Settings:** XP per message: ${levelConfig.xpPerMessage}, XP per level: ${levelConfig.xpPerLevel}`,
-                ``,
-                `**Top Rankings:**`
-            ];
+            let description = 
+                `${dialogues.stats.total_users}: ${ranking.length}\n` +
+                `${dialogues.stats.total_messages}: ${totalMessages}\n` +
+                `${dialogues.stats.total_xp}: ${totalXp}\n` +
+                `${dialogues.stats.average_xp}: ${avgXp}\n\n` +
+                `**${dialogues.stats.top_rankings}:**\n`;
             ranking.slice(0, 5).forEach((user, idx) => {
-                response.push(`${idx + 1}. <@${user.userId}> – Level ${user.level} (${user.xp} XP)`);
+                description += `${idx + 1}. <@${user.userId}> – Level ${user.level} (${user.xp} XP)\n`;
             });
-            await interaction.reply(response.join('\n'));
+            const embed = new EmbedBuilder()
+                .setColor('#0099ff')
+                .setTitle(dialogues.stats.server_title)
+                .setDescription(description);
+            await interaction.reply({ embeds: [embed] });
         } else {
-            // Personal stats (or of specified user)
+            // Personal stats
             const targetUser = interaction.options.getUser('user') || interaction.user;
             const userStats = getUserStats(guildId, targetUser.id);
-            const levelConfig = getLevelConfig();
             const ranking = getServerRanking(guildId);
             const userRank = ranking.findIndex(u => u.userId === targetUser.id) + 1;
-            const nextLevelThreshold = userStats.level * levelConfig.xpPerLevel;
-            const xpRemaining = nextLevelThreshold - userStats.xp;
+            const nextThreshold = cumulativeXpForLevel(userStats.level + 1);
+            const xpRemaining = nextThreshold - userStats.xp;
   
-            const response = [
-                `**Stats for ${targetUser.username}:**`,
-                `Messages sent: ${userStats.messages}`,
-                `Accumulated XP: ${userStats.xp}`,
-                `Current level: ${userStats.level}`,
-                `XP needed for next level: ${xpRemaining}`,
-                `Server ranking: ${userRank} / ${ranking.length}`,
-                ``,
-                `**Level Settings:** XP per message: ${levelConfig.xpPerMessage}, XP per level: ${levelConfig.xpPerLevel}`
-            ].join('\n');
+            const embed = new EmbedBuilder()
+                .setColor('#0099ff')
+                .setTitle(dialogues.stats.user_stats_title.replace('{username}', targetUser.username))
+                .setDescription(
+                    `${dialogues.stats.messages_sent}: ${userStats.messages}\n` +
+                    `${dialogues.stats.accumulated_xp}: ${userStats.xp}\n` +
+                    `${dialogues.stats.current_level}: ${userStats.level}\n` +
+                    `${dialogues.stats.xp_needed}: ${xpRemaining > 0 ? xpRemaining : 0}\n` +
+                    `${dialogues.stats.server_ranking}: ${userRank} / ${ranking.length}\n`
+                );
   
-            await interaction.reply(response);
+            await interaction.reply({ embeds: [embed] });
         }
     },
 };

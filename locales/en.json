@@ -32,5 +32,21 @@
     "disable_twitch": {
         "success": "Twitch ads have been disabled.",
         "error": "There was an error disabling Twitch ads."
-    }
+    },
+    "stats": {
+        "server_title": "Server Global Stats",
+        "total_users": "Total users",
+        "total_messages": "Total messages",
+        "total_xp": "Total XP",
+        "average_xp": "Average XP per user",
+        "top_rankings": "Top Rankings",
+        "user_stats_title": "Stats for {username}",
+        "messages_sent": "Messages sent",
+        "accumulated_xp": "Accumulated XP",
+        "current_level": "Current level",
+        "xp_needed": "XP needed for next level",
+        "server_ranking": "Server ranking"
+    },
+    "levelup": "Congratulations! You advanced to level {level}!"
+
 }
