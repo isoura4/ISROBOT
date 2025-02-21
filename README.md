@@ -1,6 +1,6 @@
 # ISROBOT
 
-ISROBOT is a versatile Discord bot built with Node.js. It supports various commands and can be extended with additional features. The bot is designed to enhance your Discord server with fun and useful functionalities, such as telling jokes, managing games, and integrating with external services like Twitch and Bluesky.
+ISROBOT is a versatile Discord bot built with Node.js. This bot adds fun and useful functionalities to your Discord server – from playing games and displaying stats to integrating with external services like Twitch and Bluesky.
 
 ## Table of Contents
 
@@ -12,22 +12,23 @@ ISROBOT is a versatile Discord bot built with Node.js. It supports various comma
 
 ## Installation
 
-1. Clone the repository:
+1. **Clone the repository:**
    ```bash
-   git clone https://github.com/isoura4/ISROBOT.git
+   git clone https://github.com/yourusername/ISROBOT_V2.git
    ```
 
-2. Navigate to the project directory:
+2. **Navigate to the project directory:**
    ```bash
-   cd ISROBOT
+   cd ISROBOT_V2
    ```
 
-3. Install the dependencies:
+3. **Install the dependencies:**
    ```bash
    npm install
    ```
 
-4. Create a `.env` file in the root directory and add your environment variables:
+4. **Configure your environment:**  
+   Create a `.env` file in the root directory and add your environment variables:
    ```env
    DISCORD_TOKEN=your_discord_bot_token_here
    CLIENT_ID=your_discord_client_id_here
@@ -41,25 +42,34 @@ ISROBOT is a versatile Discord bot built with Node.js. It supports various comma
 ## Usage
 
 To start the bot, run the following command:
+
 ```bash
 npm start
 ```
 
+The bot will also deploy slash commands before it starts.
+
 ## Commands
 
+The following slash commands are available:
+
 - **/ping**: Measures the ping between the Discord server and the bot.
-- **/count**: Starts a counting game where users must count in order without repeating numbers or answering twice in a row.
-- **/stream**: Sets up stream checking functionality for a specified platform and streamer. Only administrators can use this command.
-- **/joke**: Tells a random joke to lighten the mood in the server.
-- **/language**: Changes the bot language between English (en) and French (fr).
+- **/joke**: Tells a random joke.
+- **/count**: Starts a counting game where users must count sequentially without repeating or consecutive responses.
+- **/disable-count**: Disables the counting mini-game.
+- **/stats**: Displays individual or server-wide statistics.
+- **/stream**: Sets up stream or post checking functionality for Twitch or Bluesky. *Admin only.*
+- **/disable-twitch**: Disables Twitch stream notifications. *Admin only.*
+- **/disable-bluesky**: Disables Bluesky post notifications. *Admin only.*
+- **/language**: Changes the bot language (English or French). *Admin only.*
 
 ## Environment Variables
 
-The bot requires the following environment variables to be set in the `.env` file:
+The bot requires the following environment variables to be set in your `.env` file:
 
 - `DISCORD_TOKEN`: Your Discord bot token.
 - `CLIENT_ID`: Your Discord client ID.
-- `GUILD_ID`: Your Discord guild ID.
+- `GUILD_ID`: Your Discord guild (server) ID.
 - `TWITCH_CLIENT_ID`: Your Twitch client ID.
 - `TWITCH_CLIENT_SECRET`: Your Twitch client secret.
 - `BLUESKY_USERNAME`: Your Bluesky username.
