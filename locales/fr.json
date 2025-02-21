@@ -1,0 +1,36 @@
+{
+    "ping": {
+        "reply": "Ping en cours...",
+        "pong": "🏓 Pong ! Le ping est de {ping}ms."
+    },
+    "joke": {
+        "error": "Une erreur s'est produite lors de la récupération d'une blague."
+    },
+    "count": {
+        "start": "Commençons à compter dans <#{channelId}> ! Le premier nombre est 0.",
+        "error_twice": "Vous ne pouvez pas répondre deux fois de suite ! Le compteur reprend à 0.",
+        "error_wrong": "Mauvais nombre ! Nous recommençons à 0."
+    },
+    "stream": {
+        "no_permission": "Vous n'avez pas la permission d'utiliser cette commande.",
+        "invalid_platform": "Plateforme invalide. Veuillez choisir \"twitch\" ou \"bluesky\".",
+        "setup_success": "Vérification de stream ou de post mise en place pour {streamerName} sur {platform} dans le canal <#{channelId}>.",
+        "twitch_live_title": "{streamerName} est en direct sur Twitch !",
+        "twitch_live_description": "Regardez le stream : {streamUrl}",
+        "bluesky_post_title": "{streamerName} a un nouveau post sur Bluesky !",
+        "bluesky_post_description": "Regardez le post : {postUrl}"
+    },
+    "disable_count": {
+        "success": "Le mini-jeu de compte a été désactivé.",
+        "not_enabled": "Le mini-jeu de compte n'est pas activé.",
+        "error": "Une erreur s'est produite lors de la désactivation du mini-jeu."
+    },
+    "disable_bluesky": {
+        "success": "Les publicités Bluesky ont été désactivées.",
+        "error": "Une erreur s'est produite lors de la désactivation des publicités Bluesky."
+    },
+    "disable_twitch": {
+        "success": "Les publicités Twitch ont été désactivées.",
+        "error": "Une erreur s'est produite lors de la désactivation des publicités Twitch."
+    }
+}

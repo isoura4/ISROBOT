@@ -6,22 +6,27 @@ import dotenv from 'dotenv';
 import { deployCommands } from './deploy-commands.js';
 import streamCommand, { startStreamCheckInterval } from './src/commands/stream.js';
 import { getLanguageState } from './src/commands/language.js';
+import { addMessageXp } from './src/levels.js';
 
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load and execute deploy-commands.js
+// Deploy commands before client login
 deployCommands();
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildPresences] });
+const client = new Client({ 
+    intents: [
+        GatewayIntentBits.Guilds, 
+        GatewayIntentBits.GuildMessages, 
+        GatewayIntentBits.MessageContent, 
+        GatewayIntentBits.GuildPresences
+    ] 
+});
 client.commands = new Collection();
 
-// Load dialogues
-let dialogues = JSON.parse(fs.readFileSync(path.join(__dirname, 'dialogues.json'), 'utf8'));
-
-// Load language state
+// Load language state from file (from /src/commands/language-state.json)
 const languageStateFilePath = path.join(__dirname, 'src/commands/language-state.json');
 let languageState = { language: 'en' };
 if (fs.existsSync(languageStateFilePath)) {
@@ -32,15 +37,26 @@ if (fs.existsSync(languageStateFilePath)) {
     console.log('Language state file not found, defaulting to English.');
 }
 
-// Ensure the selected language exists in the dialogues object
-if (!dialogues[languageState.language]) {
-    console.log(`Selected language (${languageState.language}) not found in dialogues, defaulting to English.`);
-    languageState.language = 'en'; // Default to English if the selected language is not found
+// Load dialogues from the locales folder instead of a single file
+const localesFolderPath = path.join(__dirname, 'locales');
+function loadDialogues(language) {
+    const filePath = path.join(localesFolderPath, `${language}.json`);
+    if (fs.existsSync(filePath)) {
+        try {
+            return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        } catch (err) {
+            console.error(`Error reading locale file for ${language}:`, err);
+        }
+    } else {
+        console.warn(`Locale file for ${language} not found. Falling back to English.`);
+        const fallbackPath = path.join(localesFolderPath, 'en.json');
+        return fs.existsSync(fallbackPath) ? JSON.parse(fs.readFileSync(fallbackPath, 'utf8')) : {};
+    }
 }
+let dialogues = loadDialogues(languageState.language);
 
 // Load command files
 const commandFiles = fs.readdirSync('./src/commands').filter(file => file.endsWith('.js'));
-
 for (const file of commandFiles) {
     const command = await import(`./src/commands/${file}`);
     client.commands.set(command.default.name, command.default);
@@ -51,25 +67,22 @@ client.once('ready', () => {
     updateBotStatus();
     setInterval(updateBotStatus, 60000); // Update status every minute
 
-    // Start the stream check interval
-    startStreamCheckInterval(client.guilds.cache.get(process.env.GUILD_ID), dialogues[languageState.language]);
+    // Start the stream check interval using the current locale dialogues
+    startStreamCheckInterval(client.guilds.cache.get(process.env.GUILD_ID), dialogues);
 });
 
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
 
     const command = client.commands.get(interaction.commandName);
-
     if (!command) return;
-
     try {
         console.log(`Executing command: ${interaction.commandName} with language: ${languageState.language}`);
-        await command.execute(interaction, dialogues[languageState.language]);
-
-        // Reload dialogues if the language command was executed
+        await command.execute(interaction, dialogues);
+        // If the language command was executed, reload the state and dialogues
         if (interaction.commandName === 'language') {
             languageState = getLanguageState();
-            dialogues = JSON.parse(fs.readFileSync(path.join(__dirname, 'dialogues.json'), 'utf8'));
+            dialogues = loadDialogues(languageState.language);
             console.log(`Language changed to: ${languageState.language}`);
         }
     } catch (error) {
@@ -82,24 +95,23 @@ client.on('interactionCreate', async interaction => {
 
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
+    
+    // Increase XP for every message from a non-bot user
+    addMessageXp(message.guild.id, message.author.id);
 
+    // Process counting game if the message is sent in the designated channel
     const gameState = loadGameState();
-
-    if (message.channel.id !== gameState.gameChannelId) {
-        return;
-    }
+    if (message.channel.id !== gameState.gameChannelId) return;
 
     const number = parseInt(message.content, 10);
-    if (isNaN(number)) {
-        return;
-    }
+    if (isNaN(number)) return;
 
     if (message.author.id === gameState.lastUser) {
         gameState.currentNumber = 0;
         gameState.lastUser = null;
         saveGameState(gameState);
-        await message.reply(dialogues[languageState.language].count.error_twice);
-        await message.react('❌'); // Incorrect reaction
+        await message.reply(dialogues.count.error_twice);
+        await message.react('❌');
         return;
     }
 
@@ -107,13 +119,13 @@ client.on('messageCreate', async message => {
         gameState.currentNumber = number;
         gameState.lastUser = message.author.id;
         saveGameState(gameState);
-        await message.react('✅'); // Correct reaction
+        await message.react('✅');
     } else {
         gameState.currentNumber = 0;
         gameState.lastUser = null;
         saveGameState(gameState);
-        await message.reply(dialogues[languageState.language].count.error_wrong);
-        await message.react('❌'); // Incorrect reaction
+        await message.reply(dialogues.count.error_wrong);
+        await message.react('❌');
     }
 });
 
@@ -136,14 +148,9 @@ function updateBotStatus() {
 function loadGameState() {
     const stateFilePath = path.join(__dirname, 'src/commands/count-state.json');
     if (fs.existsSync(stateFilePath)) {
-        const data = fs.readFileSync(stateFilePath, 'utf8');
-        return JSON.parse(data);
+        return JSON.parse(fs.readFileSync(stateFilePath, 'utf8'));
     }
-    return {
-        currentNumber: 0,
-        lastUser: null,
-        gameChannelId: null
-    };
+    return { currentNumber: 0, lastUser: null, gameChannelId: null };
 }
 
 function saveGameState(gameState) {

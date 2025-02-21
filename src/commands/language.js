@@ -4,14 +4,12 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const stateFilePath = path.join(__dirname, 'language-state.json');
+// Assume locale files are stored in a shared folder at the root: /locales
+const localesFolderPath = path.join(__dirname, '../../locales');
 
-let languageState = {
-    language: 'en'
-};
+let languageState = { language: 'en' };
 
-// Load the language state from the file
 function loadLanguageState() {
     if (fs.existsSync(stateFilePath)) {
         const data = fs.readFileSync(stateFilePath, 'utf8');
@@ -20,17 +18,25 @@ function loadLanguageState() {
     }
 }
 
-// Save the language state to the file
 function saveLanguageState() {
     fs.writeFileSync(stateFilePath, JSON.stringify(languageState, null, 2));
     console.log(`Saved language state: ${languageState.language}`);
 }
 
-loadLanguageState();
-
-export function getLanguageState() {
-    return languageState;
+function loadLocale(language) {
+    const filePath = path.join(localesFolderPath, `${language}.json`);
+    if (fs.existsSync(filePath)) {
+        try {
+            const data = fs.readFileSync(filePath, 'utf8');
+            return JSON.parse(data);
+        } catch (err) {
+            console.error(`Error parsing locale for ${language}:`, err);
+        }
+    }
+    return null;
 }
+
+loadLanguageState();
 
 export default {
     name: 'language',
@@ -39,7 +45,7 @@ export default {
         {
             name: 'language',
             type: 3, // STRING
-            description: 'The language to set (en or fr)',
+            description: 'The language to set (e.g., en, fr)',
             required: true,
         },
     ],
@@ -49,17 +55,17 @@ export default {
         }
 
         const language = interaction.options.getString('language').toLowerCase();
-
-        if (language !== 'en' && language !== 'fr') {
-            return interaction.reply('Invalid language. Please choose either "en" or "fr".');
+        const locale = loadLocale(language);
+        if (!locale) {
+            return interaction.reply(`Translation for "${language}" not found. Please contribute a file to the locales folder.`);
         }
 
         languageState.language = language;
         saveLanguageState();
-
-        // Reload the language state
-        loadLanguageState();
-
         await interaction.reply(`Language has been set to ${language}.`);
     }
 };
+
+export function getLanguageState() {
+    return languageState;
+}
