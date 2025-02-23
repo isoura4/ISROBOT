@@ -10,7 +10,7 @@ export default {
             name: 'scope',
             type: 3,
             description: 'Choose "self" for your stats or "server" for global server stats',
-            required: false,
+            required: true,
             choices: [
                 { name: 'self', value: 'self' },
                 { name: 'server', value: 'server' }
@@ -36,7 +36,9 @@ export default {
                 `${dialogues.stats.average_xp}: ${avgXp}\n\n` +
                 `**${dialogues.stats.top_rankings}:**\n`;
             ranking.slice(0, 5).forEach((user, idx) => {
-                description += `${idx + 1}. ${user.userId} – Level ${user.level} (${user.xp} XP)\n`;
+                const member = interaction.guild.members.cache.get(user.userId);
+                const name = member ? member.displayName : user.userId;
+                description += `${idx + 1}. ${name} – Level ${user.level} (${user.xp} XP)\n`;
             });
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
