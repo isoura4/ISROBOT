@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { deployCommands } from './deploy-commands.js';
 import { startStreamCheckInterval } from './src/commands/stream.js';
 import { getLanguageState } from './src/commands/language.js';
-import { addMessageXp } from './src/levels.js';
+import { addMessageXp, addVoiceXp } from './src/levels.js';
 
 dotenv.config();
 
@@ -69,6 +69,26 @@ client.once('ready', () => {
 
     // Start the stream check interval using the current locale dialogues
     startStreamCheckInterval(client.guilds.cache.get(process.env.GUILD_ID), dialogues);
+    
+    // Add a new interval that awards 0.5 XP for users in voice channels every hour.
+    setInterval(async () => {
+        console.log('Awarding voice XP...');
+        client.guilds.cache.forEach(guild => {
+            // Filter for channels that are voice-based.
+            guild.channels.cache.filter(channel => channel.isVoiceBased()).forEach(channel => {
+                channel.members.forEach(async member => {
+                    if (!member.user.bot) {
+                        // Await the result of addVoiceXp.
+                        const newLevel = await addVoiceXp(guild.id, member.id);
+                        if (newLevel) {
+                            member.send(dialogues.levelup.replace('{level}', newLevel))
+                                .catch(err => console.error(`Could not DM ${member.user.tag}:`, err));
+                        }
+                    }
+                });
+            });
+        });
+    }, 3600000); // 1 hour interval
 });
 
 // Handle interactions (slash commands)
@@ -100,11 +120,11 @@ client.on('interactionCreate', async interaction => {
 client.on('messageCreate', async message => {
     if (message.author.bot) return;
     
-    // Increase XP for each non-bot message using message content for word count
-    const newLevel = addMessageXp(message.guild.id, message.author.id, message.content);
+    // Increase XP for each non-bot message.
+    // Await the result here.
+    const newLevel = await addMessageXp(message.guild.id, message.author.id, message.content);
     if (newLevel) {
         try {
-            // Get the localized level-up message and replace the placeholder with the new level.
             const levelupMessage = dialogues.levelup.replace('{level}', newLevel);
             await message.author.send(levelupMessage);
         } catch (err) {

@@ -45,7 +45,8 @@
         "accumulated_xp": "Accumulated XP",
         "current_level": "Current level",
         "xp_needed": "XP needed for next level",
-        "server_ranking": "Server ranking"
+        "server_ranking": "Server ranking",
+        "corners_won": "Corners won"
     },
     "levelup": "Congratulations! You advanced to level {level}!"
 
