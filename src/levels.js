@@ -1,137 +1,208 @@
+//// filepath: /c:/Users/ISOURA/Documents/GitHub/ISROBOT_V2/src/levels.js
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import dbPromise from './database.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Data file paths
-const levelsDataFilePath = path.join(__dirname, 'data/levels.json');
-const configFilePath = path.join(__dirname, 'data/levels-config.json');
-
-// (Config is no longer used for per-message XP in this example, but we keep it if needed)
-let levelConfig = { xpPerMessage: 10, xpPerLevel: 100 };
-if (fs.existsSync(configFilePath)) {
-    try {
-        const configData = fs.readFileSync(configFilePath, 'utf8');
-        levelConfig = JSON.parse(configData);
-    } catch (err) {
-        console.error('Error reading levels config:', err);
+// Run migration if levels.json exists
+(async function migrateLevels() {
+    const levelsFile = path.join(process.cwd(), 'src', 'data', 'levels.json');
+    if (!fs.existsSync(levelsFile)) {
+        console.log('No levels.json file found, skipping migration.');
+        return;
     }
-}
+    console.log('Migrating data from levels.json into SQLite...');
+    try {
+        const data = fs.readFileSync(levelsFile, 'utf8');
+        const levelsData = JSON.parse(data);
+        for (const guildId in levelsData.servers) {
+            const users = levelsData.servers[guildId].users;
+            for (const userId in users) {
+                const userData = users[userId];
+                const db = await dbPromise;
+                // Check if the user data already exists.
+                const existing = await db.get(
+                    'SELECT * FROM users WHERE guildId = ? AND userId = ?',
+                    guildId,
+                    userId
+                );
+                if (existing) {
+                    // Update with data from levels.json.
+                    await db.run(
+                        `UPDATE users 
+                         SET xp = ?, level = ?, messages = ? 
+                         WHERE guildId = ? AND userId = ?`,
+                        parseFloat(userData.xp.toFixed(2)),
+                        userData.level,
+                        userData.messages,
+                        guildId,
+                        userId
+                    );
+                } else {
+                    // Insert new row.
+                    await db.run(
+                        'INSERT INTO users (guildId, userId, xp, level, messages) VALUES (?, ?, ?, ?, ?)',
+                        guildId,
+                        userId,
+                        parseFloat(userData.xp.toFixed(2)),
+                        userData.level,
+                        userData.messages
+                    );
+                }
+            }
+        }
+        console.log('Migration from levels.json completed.');
+        // Optionally remove levels.json after migration.
+        fs.unlinkSync(levelsFile);
+    } catch (error) {
+        console.error('Error during levels.json migration:', error);
+    }
+})();
 
-/*
- XP Calculation:
-   For n words in a message, XP = 60 * (1.05ⁿ - 1)
-   (Because for one word, XP = 60*(1.05^1 - 1) = 60*0.05 = 3)
-*/
-function calculateMessageXp(messageText) {
-    const words = messageText.trim().split(/\s+/).filter(word => word !== '');
+function computeXpForMessage(messageText) {
+    const words = messageText.trim().split(/\s+/).filter(w => w.length > 0);
     const n = words.length;
-    return Math.floor(60 * (Math.pow(1.05, n) - 1));
+    if (n === 0) return 0;
+    const r = 1.15; // 15% more xp for each subsequent word.
+    const xp = 3 * ((Math.pow(r, n) - 1) / (r - 1));
+    return parseFloat(xp.toFixed(2)); // Round to two decimals
 }
 
-/*
- Level calculation:
-   - To go from level 1 → 2: need 100 XP
-   - To go from level 2 → 3: need 150 XP
-   - Then each next level requires 20% more XP than the previous level.
-   We subtract the threshold XP as long as the user’s remaining XP meets it.
-*/
-function computeLevel(xp) {
+/**
+ * Computes the level based on cumulative XP.
+ * Level 1 starts at 0 XP.
+ * For level 2, the threshold is 100 XP.
+ * For each subsequent level, the XP increment is multiplied by 1.3.
+ */
+export function computeLevel(xp) {
     let level = 1;
-    let required = 100; // XP needed to go from level 1 → 2
-    while (xp >= required) {
-        xp -= required;
+    let threshold = 0;
+    let increment = 100;
+    while (xp >= threshold + increment) {
+        threshold += increment;
+        increment *= 1.3;
         level++;
-        required = Math.floor(required * 1.2);
     }
     return level;
 }
 
-function loadLevels() {
-    if (fs.existsSync(levelsDataFilePath)) {
-        const data = fs.readFileSync(levelsDataFilePath, 'utf8');
-        return JSON.parse(data);
-    }
-    return { servers: {} };
-}
-
-function saveLevels(data) {
-    fs.writeFileSync(levelsDataFilePath, JSON.stringify(data, null, 2));
-}
-
-// Now, addMessageXp expects a third parameter: the message text.
-export function addMessageXp(guildId, userId, messageText) {
-    const levelsData = loadLevels();
-    if (!levelsData.servers[guildId]) {
-        levelsData.servers[guildId] = { users: {} };
-    }
-    const serverData = levelsData.servers[guildId];
-    if (!serverData.users[userId]) {
-        serverData.users[userId] = { xp: 0, level: 1, messages: 0 };
-    }
-    const userData = serverData.users[userId];
-
-    const previousLevel = userData.level;
-    const xpEarned = calculateMessageXp(messageText);
-    userData.xp += xpEarned;
-    userData.messages += 1;
-
-    const newLevel = computeLevel(userData.xp);
-    if (newLevel > previousLevel) {
-        userData.level = newLevel;
-        saveLevels(levelsData);
-        return newLevel; // Return new level if a level up occurred
-    }
-    saveLevels(levelsData);
-    return null;
-}
-
-export function getUserStats(guildId, userId) {
-    const levelsData = loadLevels();
-    if (levelsData.servers[guildId] && levelsData.servers[guildId].users[userId]) {
-        return levelsData.servers[guildId].users[userId];
-    }
-    return { xp: 0, level: 1, messages: 0 };
-}
-
-export function getServerRanking(guildId) {
-    const levelsData = loadLevels();
-    if (!levelsData.servers[guildId]) return [];
-    const users = Object.entries(levelsData.servers[guildId].users);
-    // Sort descending by XP
-    return users
-        .map(([userId, stats]) => ({ userId, ...stats }))
-        .sort((a, b) => b.xp - a.xp);
-}
-
-export function getLevelConfig() {
-    return levelConfig;
-}
-
-export function updateLevelConfig(newConfig) {
-    levelConfig = { ...levelConfig, ...newConfig };
-    fs.writeFileSync(configFilePath, JSON.stringify(levelConfig, null, 2));
-}
-
+/**
+ * Returns the cumulative XP threshold for a given level.
+ * For level 1, threshold is 0.
+ * Level 2 threshold is 100 XP.
+ * Level 3 threshold is 100 + (100*1.3), and so on.
+ */
 export function cumulativeXpForLevel(level) {
-    // For your system:
-    // Level 1 → 2: 100 XP
-    // Level 2 → 3: 150 XP
-    // For level 4 and onward: each level-up requirement increases by 20% (using Math.floor)
     if (level <= 1) return 0;
-    let total = 0;
-    if (level >= 2) {
-        total += 100; // Level 2 threshold
+    let threshold = 0;
+    let increment = 100;
+    for (let i = 2; i <= level; i++) {
+        threshold += increment;
+        increment *= 1.3;
     }
-    if (level >= 3) {
-        total += 150; // Level 3 threshold
-        let req = 150;
-        for (let i = 4; i <= level; i++) {
-            req = Math.floor(req * 1.2);
-            total += req;
-        }
+    return threshold;
+}
+
+// Award XP for a new message.
+export async function addMessageXp(guildId, userId, messageText) {
+    const db = await dbPromise;
+    let userData = await db.get(
+        'SELECT * FROM users WHERE guildId = ? AND userId = ?',
+        guildId, userId
+    );
+    if (!userData) {
+        await db.run(
+            'INSERT INTO users (guildId, userId) VALUES (?, ?)',
+            guildId, userId
+        );
+        userData = await db.get(
+            'SELECT * FROM users WHERE guildId = ? AND userId = ?',
+            guildId, userId
+        );
     }
-    return total;
+
+    const xpEarned = computeXpForMessage(messageText);
+    const newXp = parseFloat((userData.xp + xpEarned).toFixed(2));
+    const previousLevel = userData.level;
+    const newLevel = computeLevel(newXp);
+    let coinsAwarded = 0;
+
+    if (newLevel > previousLevel) {
+        coinsAwarded = (newLevel - previousLevel) * 10;
+    }
+
+    await db.run(
+        `UPDATE users 
+         SET xp = ?, level = ?, messages = messages + 1, coins = coins + ? 
+         WHERE guildId = ? AND userId = ?`,
+        newXp,
+        newLevel,
+        coinsAwarded,
+        guildId,
+        userId
+    );
+
+    return newLevel > previousLevel ? newLevel : null;
+}
+
+// Award XP for being in voice chat.
+export async function addVoiceXp(guildId, userId) {
+    const db = await dbPromise;
+    let userData = await db.get(
+        'SELECT * FROM users WHERE guildId = ? AND userId = ?',
+        guildId, userId
+    );
+    if (!userData) {
+        await db.run(
+            'INSERT INTO users (guildId, userId) VALUES (?, ?)',
+            guildId, userId
+        );
+        userData = await db.get(
+            'SELECT * FROM users WHERE guildId = ? AND userId = ?',
+            guildId, userId
+        );
+    }
+
+    const xpEarned = 0.5; // Award 0.5 XP per hour in voice chat.
+    const newXp = parseFloat((userData.xp + xpEarned).toFixed(2));
+    const previousLevel = userData.level;
+    const newLevel = computeLevel(newXp);
+    let coinsAwarded = 0;
+
+    if (newLevel > previousLevel) {
+        coinsAwarded = (newLevel - previousLevel) * 10;
+    }
+
+    await db.run(
+        `UPDATE users 
+         SET xp = ?, level = ?, coins = coins + ? 
+         WHERE guildId = ? AND userId = ?`,
+        newXp,
+        newLevel,
+        coinsAwarded,
+        guildId,
+        userId
+    );
+
+    return newLevel > previousLevel ? newLevel : null;
+}
+
+export async function getUserStats(guildId, userId) {
+    const db = await dbPromise;
+    let userData = await db.get(
+        'SELECT * FROM users WHERE guildId = ? AND userId = ?',
+        guildId, userId
+    );
+    if (!userData) {
+        return { xp: 0, level: 1, messages: 0, coins: 0 };
+    }
+    return userData;
+}
+
+export async function getServerRanking(guildId) {
+    const db = await dbPromise;
+    const users = await db.all(
+        'SELECT * FROM users WHERE guildId = ?',
+        guildId
+    );
+    return users.sort((a, b) => b.xp - a.xp);
 }

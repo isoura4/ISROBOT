@@ -45,7 +45,8 @@
         "accumulated_xp": "XP accumulée",
         "current_level": "Niveau actuel",
         "xp_needed": "XP nécessaire pour le prochain niveau",
-        "server_ranking": "Classement du serveur"
+        "server_ranking": "Classement du serveur",
+        "corners_won": "Coins gagnées"
     },
     "levelup": "Félicitations ! Vous êtes passé au niveau {level} !"
 }

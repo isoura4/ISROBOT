@@ -4,13 +4,12 @@ import { EmbedBuilder } from 'discord.js';
 export default {
     name: 'stats',
     description: 'View individual or server statistics',
-    // Removed the "user" option.
     options: [
         {
             name: 'scope',
             type: 3,
             description: 'Choose "self" for your stats or "server" for global server stats',
-            required: false,
+            required: true,
             choices: [
                 { name: 'self', value: 'self' },
                 { name: 'server', value: 'server' }
@@ -21,8 +20,7 @@ export default {
         const scope = interaction.options.getString('scope') || 'self';
         const guildId = interaction.guild.id;
         if (scope === 'server') {
-            // Global server stats
-            const ranking = getServerRanking(guildId);
+            const ranking = await getServerRanking(guildId);
             let totalMessages = 0, totalXp = 0;
             ranking.forEach(user => {
                 totalMessages += user.messages;
@@ -36,7 +34,9 @@ export default {
                 `${dialogues.stats.average_xp}: ${avgXp}\n\n` +
                 `**${dialogues.stats.top_rankings}:**\n`;
             ranking.slice(0, 5).forEach((user, idx) => {
-                description += `${idx + 1}. ${user.userId} – Level ${user.level} (${user.xp} XP)\n`;
+                const member = interaction.guild.members.cache.get(user.userId);
+                const name = member ? member.displayName : user.userId;
+                description += `${idx + 1}. ${name} – Level ${user.level} (${user.xp} XP)\n`;
             });
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
@@ -44,13 +44,12 @@ export default {
                 .setDescription(description);
             await interaction.reply({ embeds: [embed] });
         } else {
-            // Personal stats; since the "user" option is removed, we default to the interaction user.
             const targetUser = interaction.user;
-            const userStats = getUserStats(guildId, targetUser.id);
-            const ranking = getServerRanking(guildId);
+            const userStats = await getUserStats(guildId, targetUser.id);
+            const ranking = await getServerRanking(guildId);
             const userRank = ranking.findIndex(u => u.userId === targetUser.id) + 1;
             const nextThreshold = cumulativeXpForLevel(userStats.level + 1);
-            const xpRemaining = nextThreshold - userStats.xp;
+            const xpRemaining = parseFloat((nextThreshold - userStats.xp).toFixed(2));
   
             const embed = new EmbedBuilder()
                 .setColor('#0099ff')
@@ -60,7 +59,8 @@ export default {
                     `${dialogues.stats.accumulated_xp}: ${userStats.xp}\n` +
                     `${dialogues.stats.current_level}: ${userStats.level}\n` +
                     `${dialogues.stats.xp_needed}: ${xpRemaining > 0 ? xpRemaining : 0}\n` +
-                    `${dialogues.stats.server_ranking}: ${userRank} / ${ranking.length}\n`
+                    `${dialogues.stats.server_ranking}: ${userRank} / ${ranking.length}\n` +
+                    `${dialogues.stats.corners_won}: ${userStats.coins}\n`
                 );
   
             await interaction.reply({ embeds: [embed] });
