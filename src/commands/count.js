@@ -15,7 +15,7 @@ export default {
       lastUser: null,
       gameChannelId: channelId,
       counterBroken: false,
-      savedValue: 0
+      savedValue: 0,
     };
     if (fs.existsSync(stateFilePath)) {
       try {
@@ -34,25 +34,33 @@ export default {
       gameState.currentNumber = number;
       gameState.lastUser = interaction.user.id;
       fs.writeFileSync(stateFilePath, JSON.stringify(gameState, null, 2));
-      // Use locale key for success message if available.
       const successMsg = (dialogues.count && dialogues.count.success)
         ? dialogues.count.success.replace('{number}', gameState.currentNumber)
         : `Great! The current number is now ${gameState.currentNumber}.`;
       return interaction.reply({ content: successMsg, flags: 64 });
     } else {
-      // First mistake: save the last valid number and reply with the combined error message.
+      // Decide which dialogues to use based on whether counter saver is enabled.
+      const useCounterSaver = process.env.COUNTER_SAVER_ENABLED?.toLowerCase() === 'true';
+      // Save the last valid number and reset immediately.
       gameState.savedValue = gameState.currentNumber;
-      const errorMsg = (dialogues.count && dialogues.count.error_combined)
-        ? dialogues.count.error_combined.replace('{number}', gameState.savedValue)
-        : `Incorrect number! Your counter has been saved at ${gameState.savedValue}. You can save it using an item from the store or start from zero. Good luck!`;
-
-      // Reset the counter immediately so players can start again.
       gameState.currentNumber = 0;
       gameState.lastUser = null;
       gameState.counterBroken = false;
-      gameState.savedValue = 0;
       fs.writeFileSync(stateFilePath, JSON.stringify(gameState, null, 2));
-      return interaction.reply({ content: errorMsg, flags: 64 });
+
+      if (useCounterSaver) {
+        // When enabled, use the combined error message.
+        const errorMsg = (dialogues.count && dialogues.count.error_combined)
+          ? dialogues.count.error_combined.replace('{number}', gameState.savedValue)
+          : `Incorrect number! Your counter has been saved at ${gameState.savedValue}. You can save it using an item from the store or start from zero. Good luck!`;
+        return interaction.reply({ content: errorMsg, flags: 64 });
+      } else {
+        // When disabled ('blind' off), simply use error_wrong.
+        const errorMsg = (dialogues.count && dialogues.count.error_wrong)
+          ? dialogues.count.error_wrong
+          : 'Wrong number! The counter has been reset.';
+        return interaction.reply({ content: errorMsg, flags: 64 });
+      }
     }
-  }
+  },
 };
