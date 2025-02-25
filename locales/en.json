@@ -7,9 +7,11 @@
         "error": "There was an error fetching a joke."
     },
     "count": {
-        "start": "Let's start counting in <#{channelId}>! The first number is 0.",
-        "error_twice": "You cannot answer twice in a row! The counter resumes from 0.",
-        "error_wrong": "Wrong number! We start again from 0."
+        "success": "Great! The current number is now {number}.",
+        "error_combined": "Incorrect number! Your counter has been saved at {number}. You can save it using an item from the store or start from zero. Good luck!",
+        "error_broken": "Wrong number. Your counter was saved at {number}. You can rescue it via a store item.",
+        "error_twice": "You sent consecutive entries! The count has been reset.",
+        "error_wrong": "Wrong number! The count has been reset."
     },
     "stream": {
         "no_permission": "You do not have permission to use this command.",
@@ -48,6 +50,17 @@
         "server_ranking": "Server ranking",
         "corners_won": "Corners won"
     },
-    "levelup": "Congratulations! You advanced to level {level}!"
+    "levelup": "Congratulations! You advanced to level {level}!",
+    "store": {
+    "no_permission": "You do not have permission to use this command.",
+    "welcome": "Welcome to the store!",
+    "title": "Store",
+    "corner_max": "You have reached the maximum number of Corner Savers.",
+    "no_funds": "You do not have enough coins to purchase this item.",
+    "corner_success": "You have successfully purchased a Corner Saver!",
+    "counter_not_available": "The Counter Saver item is not available right now.",
+    "counter_success": "Your counter has been resumed!",
+    "counter_public": "Your counter has been taken back! thanks to a purchase!"
+    }
 
 }
