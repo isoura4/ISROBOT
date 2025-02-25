@@ -8,7 +8,7 @@
   },
   "count": {
     "success": "Super ! Le numéro actuel est maintenant {number}.",
-    "error_broken": "Vous vous êtes trompé. Votre compteur a été sauvegardé à {number}. Vous pouvez le sauver via un objet de la boutique.",
+    "error_broken": "Vous vous êtes trompé. Votre compteur a été sauvegardé à {number}. Vous pouvez le sauver via un objet de la boutique ou juste le reprendre.",
     "error_twice": "Vous avez envoyé deux fois de suite! Le compteur a été réinitialisé.",
     "error_wrong": "Numéro incorrect! Le compteur a été réinitialisé.",
     "error_combined": "Numéro incorrect! Votre compteur a été sauvegardé à {number}. Vous pouvez le sauver via un objet de la boutique ou recommencer à zéro. Bonne chance!"

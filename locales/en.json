@@ -9,7 +9,7 @@
     "count": {
         "success": "Great! The current number is now {number}.",
         "error_combined": "Incorrect number! Your counter has been saved at {number}. You can save it using an item from the store or start from zero. Good luck!",
-        "error_broken": "Wrong number. Your counter was saved at {number}. You can rescue it via a store item.",
+        "error_broken": "Wrong number. Your counter was saved at {number}. You can save it using an item from the store or start from zero. Good luck!",
         "error_twice": "You sent consecutive entries! The count has been reset.",
         "error_wrong": "Wrong number! The count has been reset."
     },
