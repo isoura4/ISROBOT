@@ -67,5 +67,8 @@
       "purchase_error": "An unexpected error occurred during your purchase.",
       "counter_cooldown": "Counter Saver is on cooldown. Please try again in {remaining} day(s).",
       "disabled": "Store functionality is currently disabled."
-    }
+    },
+  "coinflip": {
+    "result": "The coin landed on {result}!"
+  }
   }

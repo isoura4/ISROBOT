@@ -67,5 +67,8 @@
     "purchase_error": "Une erreur inattendue s'est produite lors de votre achat.",
     "counter_cooldown": "La Sauvegarde de Compteur est en refroidissement. Veuillez réessayer dans {remaining} jour(s).",
     "disabled": "La boutique est actuellement désactivée."
+  },
+  "coinflip": {
+    "result": "La pièce a atterri sur {result} !"
   }
 }
