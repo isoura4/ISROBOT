@@ -211,6 +211,7 @@ client.on('interactionCreate', async (interaction) => {
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
+  // Award message XP.
   const newLevel = await addMessageXp(message.guild.id, message.author.id, message.content);
   if (newLevel) {
     try {
@@ -242,11 +243,21 @@ client.on('messageCreate', async (message) => {
   const number = parseInt(message.content, 10);
   if (isNaN(number)) return;
   const useCounterSaver = process.env.COUNTER_SAVER_ENABLED?.toLowerCase() === 'true';
-  
+
   if (useCounterSaver) {
-    // Store-activated mode
+    // --- Store-Activated Mode ---
+    // Special branch: if counter is reset (currentNumber===0) and user enters 1, resume immediately.
+    if (gameState.currentNumber === 0 && number === 1) {
+      gameState.currentNumber = 1;
+      gameState.lastUser = message.author.id;
+      gameState.counterBroken = false;
+      gameState.savedValue = 0;
+      fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
+      await message.react('✅');
+      return;
+    }
+    // Check for consecutive entries.
     if (message.author.id === gameState.lastUser) {
-      // Consecutive entry by same user.
       if (!gameState.counterBroken) {
         gameState.counterBroken = true;
         gameState.savedValue = gameState.currentNumber;
@@ -260,14 +271,7 @@ client.on('messageCreate', async (message) => {
       }
       return;
     }
-    // Special branch to resume counting immediately if counter is reset.
-    if (gameState.currentNumber === 0 && number === 1) {
-      gameState.currentNumber = 1;
-      gameState.lastUser = message.author.id;
-      fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-      await message.react('✅');
-      return;
-    }
+    // Correct consecutive entry.
     if (number === gameState.currentNumber + 1) {
       if (gameState.counterBroken) {
         gameState.counterBroken = false;
@@ -278,6 +282,7 @@ client.on('messageCreate', async (message) => {
       fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
       await message.react('✅');
     } else {
+      // For a nonconsecutive wrong number.
       if (!gameState.counterBroken) {
         gameState.counterBroken = true;
         gameState.savedValue = gameState.currentNumber;
@@ -289,20 +294,16 @@ client.on('messageCreate', async (message) => {
         await message.reply(errorMsg);
         await message.react('❌');
       } else {
+        // If already broken and wrong input again, simply reset without sending an extra message.
         gameState.currentNumber = 0;
         gameState.lastUser = null;
         gameState.counterBroken = false;
         gameState.savedValue = 0;
         fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-        const errorMsg = (dialogues.count && dialogues.count.error_wrong)
-          ? dialogues.count.error_wrong
-          : 'Wrong number! The counter has been reset.';
-        await message.reply(errorMsg);
-        await message.react('❌');
       }
     }
   } else {
-    // Store-disabled mode
+    // --- Store-Disabled Mode ---
     if (message.author.id === gameState.lastUser) {
       gameState.currentNumber = 0;
       gameState.lastUser = null;
