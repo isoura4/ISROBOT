@@ -8,182 +8,171 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Ensure .env contains our new API key lines.
-function ensureEnvKeys() {
-  const envPath = path.join(process.cwd(), '.env');
-  let content = '';
-  if (fs.existsSync(envPath)) {
-    content = fs.readFileSync(envPath, 'utf8');
-  }
-  const requiredKeys = ['YOUTUBE_API_KEY', 'TIKTOK_API_KEY', 'INSTAGRAM_API_KEY'];
-  let updated = false;
-  for (const key of requiredKeys) {
-    const regex = new RegExp(`^${key}=`, 'm');
-    if (!regex.test(content)) {
-      content += `\n${key}=`;
-      updated = true;
-    }
-  }
-  if (updated) {
-    fs.writeFileSync(envPath, content);
-    console.log('Updated .env file with missing API key lines.');
-  }
-}
-ensureEnvKeys();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let streamCheckInterval = null;
-const stateFilePath = path.join(__dirname, 'stream-state.json');
 
-// Default stream state.
-const defaultStreamState = {
-  twitch: [],
-  youtube: [],
-  tiktok: [],
-  instagram: [],
-  bluesky: {
-    streamChannelId: null,
-    streamerName: null,
-    roleId: null
-  },
-  announcedStreams: {}
-};
+// Path to the old JSON file (to migrate if exists)
+const jsonStatePath = path.join(__dirname, 'stream-state.json');
 
-let streamState = { ...defaultStreamState };
-
-// Load the stream state from file and merge with defaults.
-function loadStreamState() {
-  if (fs.existsSync(stateFilePath)) {
-    try {
-      const data = fs.readFileSync(stateFilePath, 'utf8');
-      const parsed = JSON.parse(data);
-      streamState = { ...defaultStreamState, ...parsed };
-      streamState.twitch = parsed.twitch || [];
-      streamState.youtube = parsed.youtube || [];
-      streamState.tiktok = parsed.tiktok || [];
-      streamState.instagram = parsed.instagram || [];
-      streamState.announcedStreams = parsed.announcedStreams || {};
-    } catch (error) {
-      console.error('Error loading stream state:', error);
-    }
-  }
-}
-loadStreamState();
-
-// Save the stream state to file.
-function saveStreamState() {
+/**
+ * Migrates any existing stream-state.json data into the database.
+ * It migrates Twitch (array) and Bluesky (object) settings,
+ * including any announcement info from "announcedStreams".
+ */
+async function migrateStreamStateToDB() {
+  if (!fs.existsSync(jsonStatePath)) return;
   try {
-    fs.writeFileSync(stateFilePath, JSON.stringify(streamState, null, 2));
+    const data = fs.readFileSync(jsonStatePath, 'utf8');
+    const oldState = JSON.parse(data);
+    const db = await import('../database.js').then(module => module.default);
+
+    // Migrate Twitch settings.
+    if (oldState.twitch && Array.isArray(oldState.twitch)) {
+      for (const twitchConfig of oldState.twitch) {
+         let announced = 0, startTime = null;
+         const key = `twitch_${twitchConfig.streamerName}`;
+         if (oldState.announcedStreams && oldState.announcedStreams[key]) {
+           announced = oldState.announcedStreams[key].announced ? 1 : 0;
+           startTime = oldState.announcedStreams[key].startTime;
+         }
+         await db.run(
+           `INSERT OR REPLACE INTO streams (platform, streamerName, streamChannelId, roleId, announced, startTime)
+            VALUES (?, ?, ?, ?, ?, ?)`,
+           'twitch',
+           twitchConfig.streamerName,
+           twitchConfig.streamChannelId,
+           twitchConfig.roleId,
+           announced,
+           startTime
+         );
+      }
+    }
+    // Migrate Bluesky settings.
+    if (oldState.bluesky && oldState.bluesky.streamerName) {
+       let announced = 0, startTime = null;
+       const key = `bluesky_${oldState.bluesky.streamerName}`;
+       if (oldState.announcedStreams && oldState.announcedStreams[key]) {
+           announced = oldState.announcedStreams[key].announced ? 1 : 0;
+           startTime = oldState.announcedStreams[key].startTime;
+       }
+       await db.run(
+         `INSERT OR REPLACE INTO streams (platform, streamerName, streamChannelId, roleId, announced, startTime)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+         'bluesky',
+         oldState.bluesky.streamerName,
+         oldState.bluesky.streamChannelId,
+         oldState.bluesky.roleId,
+         announced,
+         startTime
+       );
+    }
+    // Remove the old JSON file after migration.
+    fs.unlinkSync(jsonStatePath);
+    console.log('Migrated stream-state.json to SQLite database.');
   } catch (error) {
-    console.error('Error saving stream state:', error);
+    console.error('Error migrating stream state:', error);
   }
 }
 
-export function startStreamCheckInterval(guild, dialogues) {
-  if (streamCheckInterval) {
-    clearInterval(streamCheckInterval);
-  }
+// Modified startStreamCheckInterval now reads stream configurations directly from the DB.
+export async function startStreamCheckInterval(guild, dialogues) {
+  // Run migration first.
+  await migrateStreamStateToDB();
+  const db = await import('../database.js').then(module => module.default);
+  if (streamCheckInterval) clearInterval(streamCheckInterval);
 
   streamCheckInterval = setInterval(async () => {
     console.log('Checking stream status...');
 
-    // TWITCH
+    // TWITCH: Select all twitch streams.
+    const twitchStreams = await db.all(`SELECT * FROM streams WHERE platform = 'twitch'`);
     const twitchOAuth = await getTwitchOAuthToken();
-    for (const streamer of streamState.twitch) {
-      const streamData = await checkTwitchStatus(streamer.streamerName, twitchOAuth);
-      processStreamStatus(guild, dialogues, streamData, streamer.streamerName, streamer.streamChannelId, streamer.roleId, 'twitch');
+    for (const stream of twitchStreams) {
+      const streamData = await checkTwitchStatus(stream.streamerName, twitchOAuth);
+      processStreamStatus(guild, dialogues, streamData, stream.streamerName, stream.streamChannelId, stream.roleId, 'twitch');
     }
 
-    // YOUTUBE: Check both live and post events.
-    for (const streamer of streamState.youtube) {
-      const liveData = await checkYouTubeLiveStatus(streamer.streamerName);
-      processStreamStatus(guild, dialogues, liveData, streamer.streamerName, streamer.streamChannelId, streamer.roleId, 'youtube live');
-      const postData = await checkYouTubePostStatus(streamer.streamerName);
-      processStreamStatus(guild, dialogues, postData, streamer.streamerName, streamer.streamChannelId, streamer.roleId, 'youtube post');
-    }
-
-    // TIKTOK: Check live and post events.
-    for (const streamer of streamState.tiktok) {
-      const liveData = await checkTikTokLiveStatus(streamer.streamerName);
-      processStreamStatus(guild, dialogues, liveData, streamer.streamerName, streamer.streamChannelId, streamer.roleId, 'tiktok live');
-      const postData = await checkTikTokPostStatus(streamer.streamerName);
-      processStreamStatus(guild, dialogues, postData, streamer.streamerName, streamer.streamChannelId, streamer.roleId, 'tiktok post');
-    }
-
-    // INSTAGRAM: Check live, posts, and stories.
-    for (const streamer of streamState.instagram) {
-      const liveData = await checkInstagramLiveStatus(streamer.streamerName);
-      processStreamStatus(guild, dialogues, liveData, streamer.streamerName, streamer.streamChannelId, streamer.roleId, 'instagram live');
-      const postData = await checkInstagramPostStatus(streamer.streamerName);
-      processStreamStatus(guild, dialogues, postData, streamer.streamerName, streamer.streamChannelId, streamer.roleId, 'instagram post');
-      const storieData = await checkInstagramStorieStatus(streamer.streamerName);
-      processStreamStatus(guild, dialogues, storieData, streamer.streamerName, streamer.streamChannelId, streamer.roleId, 'instagram storie');
-    }
-
-    // BLUESKY (existing)
-    if (streamState.bluesky.streamerName) {
-      const newPost = await checkBlueskyPosts(streamState.bluesky.streamerName);
+    // BLUESKY: Get the bluesky stream (if any).
+    const blueskyStream = await db.get(`SELECT * FROM streams WHERE platform = 'bluesky'`);
+    if (blueskyStream && blueskyStream.streamerName) {
+      const newPost = await checkBlueskyPosts(blueskyStream.streamerName);
       if (newPost) {
-        const channel = guild.channels.cache.get(streamState.bluesky.streamChannelId);
+        const channel = guild.channels.cache.get(blueskyStream.streamChannelId);
         if (channel) {
           const embed = new EmbedBuilder()
             .setColor('#0099ff')
-            .setTitle(dialogues.stream.bluesky_post_title.replace('{streamerName}', streamState.bluesky.streamerName))
+            .setTitle(dialogues.stream.bluesky_post_title.replace('{streamerName}', blueskyStream.streamerName))
             .setDescription(dialogues.stream.bluesky_post_description.replace('{postUrl}', newPost.url));
-          if (streamState.bluesky.roleId) {
-            await channel.send({ content: `<@&${streamState.bluesky.roleId}>`, embeds: [embed] });
+          if (blueskyStream.roleId) {
+            await channel.send({ content: `<@&${blueskyStream.roleId}>`, embeds: [embed] });
           } else {
             await channel.send({ embeds: [embed] });
           }
         }
       }
     }
-  }, 300000); // Check every 5 minutes
+  }, 300000); // Every 5 minutes.
 }
 
+// Update announcement status in the database.
 function processStreamStatus(guild, dialogues, streamData, streamerName, streamChannelId, roleId, platform) {
-  if (streamData) {
-    const startTime = streamData.started_at || streamData.startTime || Date.now();
-    const key = platform + '_' + streamerName;
-    if (
-      !streamState.announcedStreams[key] ||
-      streamState.announcedStreams[key].startTime !== startTime
-    ) {
-      const channel = guild.channels.cache.get(streamChannelId);
-      if (channel) {
-        const embed = new EmbedBuilder()
-          .setColor('#0099ff')
-          .setTitle(streamData.title || `${streamerName} is live on ${platform}!`)
-          .setDescription(`**Channel:** ${streamerName}\n**Category:** ${streamData.category || 'Live / Post'}`)
-          .setURL(getStreamUrl(platform, streamerName));
-        if (streamData.thumbnail_url) {
-          let thumbUrl = streamData.thumbnail_url;
-          if (thumbUrl.includes('{width}') || thumbUrl.includes('{height}')) {
-            thumbUrl = thumbUrl.replace('{width}', '480').replace('{height}', '270');
+  (async () => {
+    const db = await import('../database.js').then(module => module.default);
+    if (streamData) {
+      const startTime = streamData.started_at || streamData.startTime || Date.now();
+      // Compare the stored startTime (as a string) with the current startTime (as a string)
+      const record = await db.get(
+        `SELECT announced, startTime FROM streams WHERE platform = ? AND streamerName = ?`,
+        platform,
+        streamerName
+      );
+      if (!record || String(record.startTime) !== String(startTime)) {
+        const channel = guild.channels.cache.get(streamChannelId);
+        if (channel) {
+          const embed = new EmbedBuilder()
+            .setColor('#0099ff')
+            .setTitle(streamData.title || `${streamerName} is live on ${platform}!`);
+  
+          let category = streamData.category || 'Live / Post';
+          if (platform === 'twitch' && (category === 'Live / Post' || !category)) {
+            category = streamData.game_name || category;
           }
-          embed.setImage(thumbUrl);
-        }
-        if (roleId) {
-          channel.send({ content: `<@&${roleId}>`, embeds: [embed] });
+          embed.setDescription(`**Channel:** ${streamerName}\n**Category:** ${category}`)
+            .setURL(getStreamUrl(platform, streamerName));
+  
+          if (streamData.thumbnail_url) {
+            let thumbUrl = streamData.thumbnail_url;
+            if (thumbUrl.includes('{width}') || thumbUrl.includes('{height}')) {
+              thumbUrl = thumbUrl.replace('{width}', '480').replace('{height}', '270');
+            }
+            embed.setImage(thumbUrl);
+          }
+          if (roleId) {
+            channel.send({ content: `<@&${roleId}>`, embeds: [embed] });
+          } else {
+            channel.send({ embeds: [embed] });
+          }
+          console.log(`Notification sent for ${streamerName} on ${platform}`);
+          await db.run(
+            `UPDATE streams SET announced = 1, startTime = ? WHERE platform = ? AND streamerName = ?`,
+            startTime,
+            platform,
+            streamerName
+          );
         } else {
-          channel.send({ embeds: [embed] });
+          console.error(`Channel not found: ${streamChannelId}`);
         }
-        console.log(`Notification sent for ${streamerName} on ${platform}`);
-        streamState.announcedStreams[key] = { announced: true, startTime };
-        saveStreamState();
-      } else {
-        console.error(`Channel not found: ${streamChannelId}`);
       }
+    } else {
+      await db.run(
+        `UPDATE streams SET announced = 0 WHERE platform = ? AND streamerName = ?`,
+        platform,
+        streamerName
+      );
     }
-  } else {
-    const key = platform + '_' + streamerName;
-    if (streamState.announcedStreams[key]) {
-      streamState.announcedStreams[key].announced = false;
-      saveStreamState();
-    }
-  }
+  })();
 }
 
 export default {
@@ -199,7 +188,7 @@ export default {
     {
       name: 'platform',
       type: 3, // STRING
-      description: 'The platform to check (twitch, youtube, tiktok, instagram, or bluesky)',
+      description: 'The platform to check (twitch or bluesky)',
       required: true,
     },
     {
@@ -225,49 +214,18 @@ export default {
     const streamChannelId = interaction.options.getChannel('channel').id;
     const roleId = interaction.options.getRole('role_id') ? interaction.options.getRole('role_id').id : null;
 
-    if (platform === 'twitch') {
-      const existing = streamState.twitch.find(s => s.streamerName === streamerName);
-      if (existing) {
-        existing.streamChannelId = streamChannelId;
-        existing.roleId = roleId;
-      } else {
-        streamState.twitch.push({ streamChannelId, streamerName, roleId });
-      }
-    } else if (platform === 'youtube') {
-      const existing = streamState.youtube.find(s => s.streamerName === streamerName);
-      if (existing) {
-        existing.streamChannelId = streamChannelId;
-        existing.roleId = roleId;
-      } else {
-        streamState.youtube.push({ streamChannelId, streamerName, roleId });
-      }
-    } else if (platform === 'tiktok') {
-      const existing = streamState.tiktok.find(s => s.streamerName === streamerName);
-      if (existing) {
-        existing.streamChannelId = streamChannelId;
-        existing.roleId = roleId;
-      } else {
-        streamState.tiktok.push({ streamChannelId, streamerName, roleId });
-      }
-    } else if (platform === 'instagram') {
-      const existing = streamState.instagram.find(s => s.streamerName === streamerName);
-      if (existing) {
-        existing.streamChannelId = streamChannelId;
-        existing.roleId = roleId;
-      } else {
-        streamState.instagram.push({ streamChannelId, streamerName, roleId });
-      }
-    } else if (platform === 'bluesky') {
-      streamState.bluesky.streamChannelId = streamChannelId;
-      streamState.bluesky.streamerName = streamerName;
-      streamState.bluesky.roleId = roleId;
+    const db = await import('../database.js').then(module => module.default);
+    if (platform === 'twitch' || platform === 'bluesky') {
+      await db.run(
+        `INSERT OR REPLACE INTO streams (platform, streamerName, streamChannelId, roleId)
+         VALUES (?, ?, ?, ?)`,
+         platform, streamerName, streamChannelId, roleId
+      );
     } else {
       return interaction.reply(dialogues.stream.invalid_platform);
     }
 
-    saveStreamState();
     startStreamCheckInterval(interaction.guild, dialogues);
-
     interaction.reply(
       dialogues.stream.setup_success
         .replace('{streamerName}', streamerName)
@@ -312,44 +270,6 @@ async function checkTwitchStatus(streamerName, oauthToken) {
   return null;
 }
 
-// --- YouTube Functions ---
-async function checkYouTubeLiveStatus(streamerName) {
-  console.log(`Checking YouTube live status for ${streamerName} (stub)`);
-  // Use process.env.YOUTUBE_API_KEY to add a proper request.
-  return null;
-}
-async function checkYouTubePostStatus(streamerName) {
-  console.log(`Checking YouTube posts for ${streamerName} (stub)`);
-  return null;
-}
-
-// --- TikTok Functions ---
-async function checkTikTokLiveStatus(streamerName) {
-  console.log(`Checking TikTok live status for ${streamerName} (stub)`);
-  // Use process.env.TIKTOK_API_KEY to add a proper request.
-  return null;
-}
-async function checkTikTokPostStatus(streamerName) {
-  console.log(`Checking TikTok posts for ${streamerName} (stub)`);
-  return null;
-}
-
-// --- Instagram Functions ---
-async function checkInstagramLiveStatus(streamerName) {
-  console.log(`Checking Instagram live status for ${streamerName} (stub)`);
-  // Use process.env.INSTAGRAM_API_KEY to add a proper request.
-  return null;
-}
-async function checkInstagramPostStatus(streamerName) {
-  console.log(`Checking Instagram posts for ${streamerName} (stub)`);
-  return null;
-}
-async function checkInstagramStorieStatus(streamerName) {
-  console.log(`Checking Instagram stories for ${streamerName} (stub)`);
-  return null;
-}
-
-// --- Bluesky Function (existing) ---
 async function checkBlueskyPosts(username) {
   try {
     const tokenResponse = await axios.post('https://api.bluesky.com/token', {
@@ -375,12 +295,6 @@ async function checkBlueskyPosts(username) {
 function getStreamUrl(platform, streamerName) {
   if (platform.includes('twitch')) {
     return `https://twitch.tv/${streamerName}`;
-  } else if (platform.includes('youtube')) {
-    return `https://www.youtube.com/${streamerName}`;
-  } else if (platform.includes('tiktok')) {
-    return `https://www.tiktok.com/@${streamerName}`;
-  } else if (platform.includes('instagram')) {
-    return `https://www.instagram.com/${streamerName}`;
   } else if (platform.includes('bluesky')) {
     return `https://bluesky.com/${streamerName}`;
   }
