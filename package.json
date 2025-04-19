@@ -5,7 +5,7 @@
   "main": "bot.js",
   "type": "module",
   "scripts": {
-    "start": "node deploy-commands.js && node bot.js"
+    "start": "node start.js"
   },
   "dependencies": {
     "@discord-player/extractor": "^7.1.0",

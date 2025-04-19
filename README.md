@@ -123,6 +123,7 @@ This will deploy slash commands and launch the bot.
 - `axios`
 - `node-fetch`
 - `opusscript`
+-
 
 **System requirements:**
 - Node.js v18 or newer
