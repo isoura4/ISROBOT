@@ -18,6 +18,9 @@ import { deployCommands } from './deploy-commands.js';
 import { startStreamCheckInterval } from './src/commands/stream.js';
 import { getLanguageState } from './src/commands/language.js';
 import { addMessageXp, addVoiceXp } from './src/levels.js';
+import { Player } from 'discord-player';
+import { DefaultExtractors } from '@discord-player/extractor'; 
+
 
 // Setup __filename and __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -32,9 +35,27 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildVoiceStates,
   ],
 });
 client.commands = new Collection();
+
+// Attach a new Player instance to your client.
+client.player = new Player(client, {
+  leaveOnEmpty: true,
+  leaveOnEnd: true,
+  leaveOnStop: true,
+});
+
+// Load extractors using loadMulti.
+await client.player.extractors.loadMulti(DefaultExtractors);
+
+client.player.on('connectionCreate', (queue, connection) => {
+  console.log('[Player] Connection created in queue for guild:', queue.guild.id, 'Channel:', connection.channel.id);
+});
+client.player.on('error', (queue, error) => {
+  console.error('[Player] Error in queue for guild:', queue.guild.id, error);
+});
 
 // Load language state from file
 const languageStateFilePath = path.join(__dirname, 'src', 'commands', 'language-state.json');
@@ -75,7 +96,9 @@ const commandsPath = path.join(__dirname, 'src', 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith('.js'));
 for (const file of commandFiles) {
   const command = await import(`./src/commands/${file}`);
-  client.commands.set(command.default.name, command.default);
+  // Use command.data.name if it exists.
+  const commandName = command.default.data ? command.default.data.name : command.default.name;
+  client.commands.set(commandName, command.default);
 }
 
 client.once('ready', () => {
