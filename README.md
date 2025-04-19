@@ -6,7 +6,7 @@ ISROBOT is a versatile Discord bot built with Node.js. It brings music playback,
 
 ## Features
 
-- 🎵 **Music Playback**: Play and queue music from YouTube and other sources, with queue management and auto-disconnect.
+- 🎵 **Music Playback**: Play and queue music from YouTube, with queue management and auto-disconnect.
 - 🌍 **Multi-language**: Fully adaptive to English and French (add more via `/locales`).
 - 🏆 **XP & Leveling**: Earn XP and coins by chatting and being in voice channels.
 - 📈 **Stats**: View your stats or server-wide rankings.
@@ -31,25 +31,30 @@ ISROBOT is a versatile Discord bot built with Node.js. It brings music playback,
    npm install
    ```
 
-3. **Install yt-dlp and ffmpeg (for music):**
-   - On Linux:
-     ```bash
-     pip install -U yt-dlp
-     sudo apt install ffmpeg
-     ```
-   - Or download the [yt-dlp binary](https://github.com/yt-dlp/yt-dlp/releases/latest) and place it in your project.
+3. **No system ffmpeg required!**
+   - The bot uses [`ffmpeg-static`](https://www.npmjs.com/package/ffmpeg-static), which bundles ffmpeg for all platforms.
 
-4. **Configure your environment:**
-   - Copy `.env.example` to `.env` and fill in your tokens:
-     ```
-     DISCORD_TOKEN=your_discord_token
-     CLIENT_ID=your_discord_client_id
-     GUILD_ID=your_guild_id
-     TWITCH_CLIENT_ID=your_twitch_client_id
-     TWITCH_CLIENT_SECRET=your_twitch_client_secret
-     BLUESKY_USERNAME=your_bluesky_username
-     BLUESKY_PASSWORD=your_bluesky_password
-     ```
+---
+
+## First Launch: Automatic Environment Setup
+
+When you start the bot for the first time, it will **automatically create a `.env` file** if one does not exist.
+
+- The bot will prompt you in the terminal for all required configuration values (Discord token, client ID, etc.).
+- Your answers will be saved to `.env` for future runs.
+
+**Example first launch:**
+```bash
+npm start
+```
+You will see prompts like:
+```
+Enter value for DISCORD_TOKEN (Your Discord bot token (from the Discord Developer Portal) *required*): 
+Enter value for CLIENT_ID (Your Discord application client ID): 
+Enter value for GUILD_ID (The ID of the Discord guild (server) where commands are deployed): 
+...
+```
+Just answer each question. The `.env` file will be created automatically.
 
 ---
 
@@ -65,7 +70,7 @@ This will deploy slash commands and launch the bot.
 
 ## Music Commands
 
-- `/play <url>` — Play or queue a song from YouTube or direct URL.
+- `/play <url>` — Play or queue a song from YouTube.
 - `/queue` — Show the current music queue.
 - `/nowplaying` — Show the currently playing song.
 - `/stop` — Stop playback and clear the queue.
@@ -103,16 +108,13 @@ This will deploy slash commands and launch the bot.
 - Old JSON data is auto-migrated on first run.
 
 ---
+
 ## Dependencies
 
 **Node.js packages (install with `npm install`):**
 - `discord.js`
 - `@discordjs/voice`
 - `@discordjs/opus`
-- `discord-player`
-- `@discord-player/extractor`
-- `youtube-sr`
-- `ytdl-core`
 - `@distube/ytdl-core`
 - `ffmpeg-static`
 - `dotenv`
@@ -124,22 +126,6 @@ This will deploy slash commands and launch the bot.
 
 **System requirements:**
 - Node.js v18 or newer
-- Python 3 (for yt-dlp, if not using the binary)
-- `ffmpeg` (install via your package manager, e.g. `sudo apt install ffmpeg` on Ubuntu)
-- `yt-dlp` (install via `pip install -U yt-dlp` or download the [yt-dlp binary](https://github.com/yt-dlp/yt-dlp/releases/latest) and place it in your project)
-
-**To install all Node.js dependencies:**
-```bash
-npm install
-```
-
-**To install system dependencies on Ubuntu/Debian:**
-```bash
-sudo apt update
-sudo apt install ffmpeg python3 python3-pip
-pip install -U yt-dlp
-```
-Or download the yt-dlp binary as described above.
 
 ---
 
@@ -160,6 +146,6 @@ For issues or suggestions, open a GitHub issue.
 ## Credits
 
 - [discord.js](https://discord.js.org/)
-- [yt-dlp](https://github.com/yt-dlp/yt-dlp)
-- [discord-player](https://github.com/discord-player/discord-player)
+- [@distube/ytdl-core](https://www.npmjs.com/package/@distube/ytdl-core)
+- [ffmpeg-static](https://www.npmjs.com/package/ffmpeg-static)
 - [sqlite](https://www.sqlite.org/)
