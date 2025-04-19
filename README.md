@@ -103,12 +103,43 @@ This will deploy slash commands and launch the bot.
 - Old JSON data is auto-migrated on first run.
 
 ---
+## Dependencies
 
-## Requirements
+**Node.js packages (install with `npm install`):**
+- `discord.js`
+- `@discordjs/voice`
+- `@discordjs/opus`
+- `discord-player`
+- `@discord-player/extractor`
+- `youtube-sr`
+- `ytdl-core`
+- `@distube/ytdl-core`
+- `ffmpeg-static`
+- `dotenv`
+- `sqlite`
+- `sqlite3`
+- `axios`
+- `node-fetch`
+- `opusscript`
 
-- Node.js v18+ recommended
+**System requirements:**
+- Node.js v18 or newer
 - Python 3 (for yt-dlp, if not using the binary)
-- ffmpeg
+- `ffmpeg` (install via your package manager, e.g. `sudo apt install ffmpeg` on Ubuntu)
+- `yt-dlp` (install via `pip install -U yt-dlp` or download the [yt-dlp binary](https://github.com/yt-dlp/yt-dlp/releases/latest) and place it in your project)
+
+**To install all Node.js dependencies:**
+```bash
+npm install
+```
+
+**To install system dependencies on Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install ffmpeg python3 python3-pip
+pip install -U yt-dlp
+```
+Or download the yt-dlp binary as described above.
 
 ---
 
