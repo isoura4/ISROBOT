@@ -70,5 +70,12 @@
   },
   "coinflip": {
     "result": "La pièce a atterri sur {result} !"
+  },
+  "music": {
+  "must_be_in_voice": "Vous devez être dans un salon vocal !",
+  "added_to_queue": "Ajouté à la file d'attente : {url}",
+  "playing": "Lecture : {url}",
+  "queue_empty": "La file d'attente est vide.",
+  "now_playing": "Lecture en cours : {url}"
   }
 }

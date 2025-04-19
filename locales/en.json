@@ -68,7 +68,14 @@
       "counter_cooldown": "Counter Saver is on cooldown. Please try again in {remaining} day(s).",
       "disabled": "Store functionality is currently disabled."
     },
-  "coinflip": {
-    "result": "The coin landed on {result}!"
+    "coinflip": {
+      "result": "The coin landed on {result}!"
+    },
+    "music": {
+    "must_be_in_voice": "You must be in a voice channel!",
+    "added_to_queue": "Added to queue: {url}",
+    "playing": "Playing: {url}",
+    "queue_empty": "The queue is empty.",
+    "now_playing": "Now playing: {url}"
   }
   }

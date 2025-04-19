@@ -1,113 +1,151 @@
 # ISROBOT
 
-ISROBOT is a versatile Discord bot built with Node.js that adds fun and practical functionalities to your server. It features games, stats, stream notifications (Twitch & Bluesky), language switching, and a leveling system with XP and virtual currency (coins). The bot now uses SQLite for persistence and supports data migration from a JSON file.
+ISROBOT is a versatile Discord bot built with Node.js. It brings music playback, games, XP/leveling, stream notifications, multi-language support, and more to your server.
 
-## Table of Contents
-
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Commands](#commands)
-- [Leveling & Currency System](#leveling--currency-system)
-- [Environment Variables](#environment-variables)
-- [Data Migration](#data-migration)
-- [License](#license)
+---
 
 ## Features
 
-- **Ping & Joke**: Check bot latency and get a random joke.
-- **Counting Game**: A mini-game where players count sequentially.
-- **Stream Notifications**: Set up live Twitch or Bluesky notifications.
-- **Language Support**: Switch between English and French.
-- **XP and Leveling System**: Earn XP by sending messages and participating in voice channels. Levels require increasing XP thresholds, and leveling up awards coins.
-- **SQLite Integration**: All user progress is now stored in a SQLite database for efficient scaling and persistence.
-- **Automatic Data Migration**: If previous levels data is stored in a JSON file, it is automatically migrated into the database.
+- 🎵 **Music Playback**: Play and queue music from YouTube, with queue management and auto-disconnect.
+- 🌍 **Multi-language**: Fully adaptive to English and French (add more via `/locales`).
+- 🏆 **XP & Leveling**: Earn XP and coins by chatting and being in voice channels.
+- 📈 **Stats**: View your stats or server-wide rankings.
+- 🎲 **Games**: Counting game, coin flip, and random jokes.
+- 📢 **Stream Notifications**: Get notified for Twitch and Bluesky streams/posts.
+- 🛒 **Store**: Spend coins on special items (like Counter Saver).
+- 🗃️ **SQLite Database**: Persistent storage for all user data.
+- 🔄 **Admin Tools**: Change language, reload config, and more.
+
+---
 
 ## Installation
 
 1. **Clone the repository:**
    ```bash
    git clone https://github.com/isoura4/ISROBOT.git
-   ```
-
-2. **Navigate to the project directory:**
-   ```bash
    cd ISROBOT
    ```
 
-3. **Install the dependencies:**
+2. **Install dependencies:**
    ```bash
    npm install
    ```
 
-4. **Configure your environment:**  
-   Create a `.env` file in the root directory and add your environment variables. For example:
-   ```env
-   DISCORD_TOKEN=your_discord_bot_token_here
-   CLIENT_ID=your_discord_client_id_here
-   GUILD_ID=your_discord_guild_id_here
-   TWITCH_CLIENT_ID=your_twitch_client_id
-   TWITCH_CLIENT_SECRET=your_twitch_client_secret
-   BLUESKY_USERNAME=your_bluesky_username
-   BLUESKY_PASSWORD=your_bluesky_password
-   ```
+3. **No system ffmpeg required!**
+   - The bot uses [`ffmpeg-static`](https://www.npmjs.com/package/ffmpeg-static), which bundles ffmpeg for all platforms.
 
-## Usage
+---
 
-To start the bot, run:
+## First Launch: Automatic Environment Setup
 
+When you start the bot for the first time, it will **automatically create a `.env` file** if one does not exist.
+
+- The bot will prompt you in the terminal for all required configuration values (Discord token, client ID, etc.).
+- Your answers will be saved to `.env` for future runs.
+
+**Example first launch:**
 ```bash
 npm start
 ```
+You will see prompts like:
+```
+Enter value for DISCORD_TOKEN (Your Discord bot token (from the Discord Developer Portal) *required*): 
+Enter value for CLIENT_ID (Your Discord application client ID): 
+Enter value for GUILD_ID (The ID of the Discord guild (server) where commands are deployed): 
+...
+```
+Just answer each question. The `.env` file will be created automatically.
 
-This command deploys the latest slash commands and starts the bot.
+---
 
-## Commands
+## Usage
 
-The following slash commands are available:
+Start the bot with:
+```bash
+npm start
+```
+This will deploy slash commands and launch the bot.
 
-- **/ping**: Measure the latency between Discord and the bot.
-- **/joke**: Get a random joke.
-- **/count**: Start a counting game in a selected channel.
-- **/disable-count**: Disable the counting mini-game.
-- **/stats**: View your own or server-wide XP, level, messages, and coins.
-- **/stream**: Configure stream notifications for Twitch or Bluesky (Admin only).
-- **/disable-twitch**: Disable Twitch notifications (Admin only).
-- **/disable-bluesky**: Disable Bluesky notifications (Admin only).
-- **/language**: Change the bot language between English and French (Admin only).
+---
 
-## Leveling & Currency System
+## Music Commands
 
-- **XP Gain per Message:**  
-  The first word in a message earns **3 XP**, and each subsequent word earns **15% more XP** than the previous one. The sum is rounded to two decimal places.
+- `/play <url>` — Play or queue a song from YouTube.
+- `/queue` — Show the current music queue.
+- `/nowplaying` — Show the currently playing song.
+- `/stop` — Stop playback and clear the queue.
 
-- **Voice XP:**  
-  Users receive **0.5 XP** per hour for being in a voice channel.
+*The bot will auto-disconnect after 10 minutes of inactivity.*
 
-- **Level Up Thresholds:**  
-  - Level 2 requires **100 XP**  
-  - Each new level requires **30% more XP** than the previous increment.  
-    Example: Level 3 requires 100 + (100 × 0.3) = 130 additional XP (Total: 230 XP).
+---
 
-- **Coin Rewards:**  
-  Every time a user levels up, they earn coins (10 coins per level gained) that can later be used in your store.
+## Other Commands
 
-## Environment Variables
+- `/ping` — Check bot latency.
+- `/joke` — Get a random joke.
+- `/count` — Counting game.
+- `/coinflip` — Flip a coin.
+- `/stats` — View your or server stats.
+- `/language <en|fr>` — Change the bot language (admin only).
+- `/stream` — Set up Twitch/Bluesky notifications (admin only).
+- `/store` — Buy items with coins (admin only).
+- `/reload` — Reload config and database (admin only).
 
-Ensure your `.env` file includes the following:
+---
 
-- `DISCORD_TOKEN`: Your Discord bot token.
-- `CLIENT_ID`: Your Discord client ID.
-- `GUILD_ID`: Your Discord guild (server) ID.
-- `TWITCH_CLIENT_ID`: Your Twitch client ID.
-- `TWITCH_CLIENT_SECRET`: Your Twitch client secret.
-- `BLUESKY_USERNAME`: Your Bluesky username.
-- `BLUESKY_PASSWORD`: Your Bluesky password.
+## Language Support
 
-## Data Migration
+- English and French included.
+- Add more languages by creating a new file in `/locales` (e.g., `es.json`).
+- Change language with `/language`.
 
-If a `levels.json` file exists in `src/data`, the bot will automatically migrate your existing XP, level, and messages data into the SQLite database on startup. After a successful migration, the JSON file is removed to prevent duplicate migrations.
+---
+
+## Data & Persistence
+
+- All user data is stored in `database.sqlite` (SQLite).
+- XP, levels, coins, and store purchases are persistent.
+- Old JSON data is auto-migrated on first run.
+
+---
+
+## Dependencies
+
+**Node.js packages (install with `npm install`):**
+- `discord.js`
+- `@discordjs/voice`
+- `@discordjs/opus`
+- `@distube/ytdl-core`
+- `ffmpeg-static`
+- `dotenv`
+- `sqlite`
+- `sqlite3`
+- `axios`
+- `node-fetch`
+- `opusscript`
+
+**System requirements:**
+- Node.js v18 or newer
+
+---
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU GPL v3.  
+See [LICENSE](LICENSE) for details.
+
+---
+
+## Contributing
+
+Pull requests and translations are welcome!  
+For issues or suggestions, open a GitHub issue.
+
+---
+
+## Credits
+
+- [discord.js](https://discord.js.org/)
+- [@distube/ytdl-core](https://www.npmjs.com/package/@distube/ytdl-core)
+- [ffmpeg-static](https://www.npmjs.com/package/ffmpeg-static)
+- [sqlite](https://www.sqlite.org/)

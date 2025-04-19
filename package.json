@@ -8,13 +8,22 @@
     "start": "node deploy-commands.js && node bot.js"
   },
   "dependencies": {
+    "@discord-player/extractor": "^7.1.0",
+    "@discordjs/opus": "^0.10.0",
     "@discordjs/rest": "^2.4.3",
+    "@discordjs/voice": "^0.18.0",
+    "@distube/ytdl-core": "^4.16.8",
     "axios": "^1.7.9",
+    "discord-player": "^7.1.0",
     "discord.js": "^14.18.0",
     "dotenv": "^10.0.0",
+    "ffmpeg-static": "^5.2.0",
     "node-fetch": "^3.3.2",
+    "opusscript": "^0.0.8",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "youtube-sr": "^4.3.11",
+    "ytdl-core": "^4.11.5"
   },
   "author": "",
   "license": "ISC"
