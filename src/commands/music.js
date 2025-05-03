@@ -1,12 +1,29 @@
 import { spawn } from 'child_process';
 import ffmpegPath from 'ffmpeg-static';
 import { SlashCommandBuilder } from 'discord.js';
-import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, StreamType, getVoiceConnection } from '@discordjs/voice';
+import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, StreamType, getVoiceConnection, VoiceConnectionStatus, entersState } from '@discordjs/voice';
 import ytdl from '@distube/ytdl-core';
 
 export const musicQueues = new Map();
 export const players = new Map();
 const disconnectTimers = new Map();
+
+async function waitForConnection(connection) {
+  try {
+    await entersState(connection, VoiceConnectionStatus.Ready, 15_000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function cleanupFFmpeg(ffmpeg) {
+  if (ffmpeg) {
+    try { ffmpeg.stdin.destroy(); } catch {}
+    try { ffmpeg.stdout.destroy(); } catch {}
+    try { ffmpeg.kill('SIGKILL'); } catch {}
+  }
+}
 
 function playNext(guildId, connection, dialogues) {
   const queue = musicQueues.get(guildId);
@@ -22,7 +39,7 @@ function playNext(guildId, connection, dialogues) {
     }
     return;
   }
-  const { url, interaction } = queue[0]; // Don't shift yet
+  const { url, interaction } = queue[0];
 
   let player = players.get(guildId);
 
@@ -45,6 +62,19 @@ function playNext(guildId, connection, dialogues) {
   ]);
   stream.pipe(ffmpeg.stdin);
 
+  // Robust error handling for streams
+  stream.on('error', (err) => {
+    console.error(`[Music] ytdl error in guild ${guildId}:`, err);
+    cleanupFFmpeg(ffmpeg);
+    next();
+  });
+  ffmpeg.stdin.on('error', (err) => {
+    if (err.code !== 'EPIPE') console.error(`[Music] ffmpeg.stdin error in guild ${guildId}:`, err);
+  });
+  ffmpeg.stdout.on('error', (err) => {
+    console.error(`[Music] ffmpeg.stdout error in guild ${guildId}:`, err);
+  });
+
   const resource = createAudioResource(ffmpeg.stdout, { inputType: StreamType.Raw });
   if (!player) {
     player = createAudioPlayer();
@@ -59,21 +89,20 @@ function playNext(guildId, connection, dialogues) {
   player.removeAllListeners('error');
 
   const next = () => {
-    // Remove the song that just finished
     const q = musicQueues.get(guildId) || [];
     q.shift();
     musicQueues.set(guildId, q);
-    try { ffmpeg.kill('SIGKILL'); } catch {}
+    cleanupFFmpeg(ffmpeg);
     playNext(guildId, connection, dialogues);
   };
 
   player.on(AudioPlayerStatus.Idle, next);
   player.on('error', (error) => {
-    console.error('Audio player error:', error);
+    console.error(`[Music] Audio player error in guild ${guildId} for ${url}:`, error);
     next();
   });
   ffmpeg.on('error', (error) => {
-    console.error('ffmpeg error:', error);
+    console.error(`[Music] ffmpeg process error in guild ${guildId} for ${url}:`, error);
     next();
   });
 
@@ -111,13 +140,20 @@ export default {
       });
     }
 
+    // Wait for connection to be ready
+    const ready = await waitForConnection(connection);
+    if (!ready) {
+      await interaction.editReply({ content: 'Failed to join voice channel.' });
+      return;
+    }
+
     // Cancel disconnect timer if exists
     if (disconnectTimers.has(interaction.guild.id)) {
       clearTimeout(disconnectTimers.get(interaction.guild.id));
       disconnectTimers.delete(interaction.guild.id);
     }
 
-    // Add to queue
+    // Add to queue and decide if we should start playback
     if (!musicQueues.has(interaction.guild.id)) musicQueues.set(interaction.guild.id, []);
     const queue = musicQueues.get(interaction.guild.id);
     const wasEmpty = queue.length === 0;

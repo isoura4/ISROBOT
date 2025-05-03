@@ -7,12 +7,12 @@ export default {
   data: new SlashCommandBuilder()
     .setName('stop')
     .setDescription('Stop playback and clear the queue'),
-  async execute(interaction) {
+  async execute(interaction, t) {
     const connection = getVoiceConnection(interaction.guild.id);
     if (connection) {
       connection.destroy();
     }
     musicQueues.set(interaction.guild.id, []);
-    await interaction.reply('Playback stopped and queue cleared.');
+    await interaction.reply(t('music.queue_empty'));
   }
 };

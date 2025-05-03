@@ -43,19 +43,6 @@ When you start the bot for the first time, it will **automatically create a `.en
 - The bot will prompt you in the terminal for all required configuration values (Discord token, client ID, etc.).
 - Your answers will be saved to `.env` for future runs.
 
-**Example first launch:**
-```bash
-npm start
-```
-You will see prompts like:
-```
-Enter value for DISCORD_TOKEN (Your Discord bot token (from the Discord Developer Portal) *required*): 
-Enter value for CLIENT_ID (Your Discord application client ID): 
-Enter value for GUILD_ID (The ID of the Discord guild (server) where commands are deployed): 
-...
-```
-Just answer each question. The `.env` file will be created automatically.
-
 ---
 
 ## Usage
@@ -90,14 +77,18 @@ This will deploy slash commands and launch the bot.
 - `/stream` — Set up Twitch/Bluesky notifications (admin only).
 - `/store` — Buy items with coins (admin only).
 - `/reload` — Reload config and database (admin only).
+- `/help` — Show help for all commands.
 
 ---
 
-## Language Support
+## Language System
 
-- English and French included.
-- Add more languages by creating a new file in `/locales` (e.g., `es.json`).
-- Change language with `/language`.
+- Uses [i18next](https://www.i18next.com/) for robust, scalable internationalization.
+- Per-server language support: each server can set its own language with `/language`.
+- Add new languages by creating `locales/<lang>/translation.json`.
+- Pluralization, interpolation, and fallbacks supported.
+- Missing keys are logged for easy translation maintenance.
+- To contribute a translation, copy `locales/en/translation.json` to your language code and translate the values.
 
 ---
 
@@ -106,6 +97,20 @@ This will deploy slash commands and launch the bot.
 - All user data is stored in `database.sqlite` (SQLite).
 - XP, levels, coins, and store purchases are persistent.
 - Old JSON data is auto-migrated on first run.
+
+---
+
+## Stability & Production Features
+
+- Global error and signal handling
+- Per-command/user cooldowns (anti-spam)
+- Health check endpoint (`/health`)
+- Environment variable validation (`envalid`)
+- Database keepalive and graceful shutdown
+- Input validation and sanitization (`validator`)
+- Structured logging (`winston`)
+- Optional: Error tracking (`Sentry`)
+- `/help` command for users
 
 ---
 
@@ -123,7 +128,10 @@ This will deploy slash commands and launch the bot.
 - `axios`
 - `node-fetch`
 - `opusscript`
--
+- `winston`
+- `envalid`
+- `validator`
+- `@sentry/node` (optional)
 
 **System requirements:**
 - Node.js v18 or newer
@@ -149,4 +157,7 @@ For issues or suggestions, open a GitHub issue.
 - [discord.js](https://discord.js.org/)
 - [@distube/ytdl-core](https://www.npmjs.com/package/@distube/ytdl-core)
 - [ffmpeg-static](https://www.npmjs.com/package/ffmpeg-static)
+- [winston](https://www.npmjs.com/package/winston)
+- [envalid](https://www.npmjs.com/package/envalid)
+- [validator](https://www.npmjs.com/package/validator)
 - [sqlite](https://www.sqlite.org/)

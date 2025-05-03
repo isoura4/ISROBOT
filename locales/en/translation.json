@@ -1,0 +1,86 @@
+{
+  "ping": {
+    "reply": "Pinging...",
+    "pong": "🏓 Pong! The ping is {ping}ms."
+  },
+  "joke": {
+    "error": "There was an error fetching a joke."
+  },
+  "count": {
+    "success": "Great! The current number is now {number}.",
+    "error_combined": "Incorrect number! Your counter has been saved at {number}. You can save it using an item from the store or start from zero. Good luck!",
+    "error_broken": "Wrong number. Your counter was saved at {number}. You can save it using an item from the store or start from zero. Good luck!",
+    "error_twice": "You sent consecutive entries! The count has been reset.",
+    "error_wrong": "Wrong number! The count has been reset."
+  },
+  "stream": {
+    "no_permission": "You do not have permission to use this command.",
+    "invalid_platform": "Invalid platform. Please choose either \"twitch\" or \"bluesky\".",
+    "setup_success": "Stream or post checking set up for {streamerName} on {platform} in channel <#{channelId}>.",
+    "twitch_live_title": "{streamerName} is live on Twitch!",
+    "twitch_live_description": "Check out the stream: {streamUrl}",
+    "bluesky_post_title": "{streamerName} has a new post on Bluesky!",
+    "bluesky_post_description": "Check out the post: {postUrl}"
+  },
+  "disable_count": {
+    "success": "The counting mini-game has been disabled.",
+    "not_enabled": "The counting mini-game is not enabled.",
+    "error": "There was an error disabling the counting mini-game."
+  },
+  "disable_bluesky": {
+    "success": "Bluesky ads have been disabled.",
+    "error": "There was an error disabling Bluesky ads."
+  },
+  "disable_twitch": {
+    "success": "Twitch ads have been disabled.",
+    "error": "There was an error disabling Twitch ads."
+  },
+  "stats": {
+    "server_title": "Server Global Stats",
+    "total_users": "Total users",
+    "total_messages": "Total messages",
+    "total_xp": "Total XP",
+    "average_xp": "Average XP per user",
+    "top_rankings": "Top Rankings",
+    "user_stats_title": "Stats for {username}",
+    "messages_sent": "Messages sent",
+    "accumulated_xp": "Accumulated XP",
+    "current_level": "Current level",
+    "xp_needed": "XP needed for next level",
+    "server_ranking": "Server ranking",
+    "corners_won": "Coins won"
+  },
+  "levelup": "Congratulations! You advanced to level {level}!",
+  "store": {
+    "no_permission": "You do not have permission to use this command.",
+    "welcome": "Welcome to the store!",
+    "title": "Store",
+    "corner_max": "You have reached the maximum number of Corner Savers.",
+    "no_funds": "You do not have enough coins to purchase this item.",
+    "corner_success": "You have successfully purchased a Corner Saver!",
+    "counter_not_available": "The Counter Saver item is not available right now.",
+    "counter_success": "Your counter has been resumed!",
+    "counter_public": "Your counter has been taken back! thanks to a purchase!",
+    "state_file_corrupt": "The state file is corrupted.",
+    "item_not_found": "Internal error: item not found.",
+    "state_update_error": "Internal error updating state.",
+    "purchase_error": "An unexpected error occurred during your purchase.",
+    "counter_cooldown": "Counter Saver is on cooldown. Please try again in {remaining} day(s).",
+    "disabled": "Store functionality is currently disabled."
+  },
+  "coinflip": {
+    "result": "The coin landed on {result}!"
+  },
+  "music": {
+    "must_be_in_voice": "You must be in a voice channel!",
+    "added_to_queue": "Added to queue: {url}",
+    "playing": "Playing: {url}",
+    "queue_empty": "The queue is empty.",
+    "now_playing": "Now playing: {url}",
+    "invalid_url": "❌ The provided URL is not valid: {url}"
+  },
+  "general": {
+    "error": "❌ An unexpected error occurred. Please try again later.",
+    "help": "**Music:** /play, /queue, /nowplaying, /stop\n**Games:** /count, /coinflip, /joke\n**Stats:** /stats\n**Admin:** /language, /stream, /store, /reload\n**Other:** /help"
+  }
+}

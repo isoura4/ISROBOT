@@ -6,10 +6,10 @@ export default {
   data: new SlashCommandBuilder()
     .setName('queue')
     .setDescription('Show the current music queue'),
-  async execute(interaction, dialogues) {
+  async execute(interaction, t) {
     const queue = musicQueues.get(interaction.guild.id) || [];
     if (queue.length === 0) {
-      await interaction.reply(dialogues.music.queue_empty);
+      await interaction.reply(t('music.queue_empty'));
       return;
     }
     const list = queue.map((item, i) => `${i + 1}. ${item.url}`).join('\n');

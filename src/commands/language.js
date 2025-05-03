@@ -1,71 +1,48 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const stateFilePath = path.join(__dirname, 'language-state.json');
-// Assume locale files are stored in a shared folder at the root: /locales
-const localesFolderPath = path.join(__dirname, '../../locales');
+const stateFilePath = path.join('src', 'commands', 'guild-language.json');
 
-let languageState = { language: 'en' };
-
-function loadLanguageState() {
-    if (fs.existsSync(stateFilePath)) {
-        const data = fs.readFileSync(stateFilePath, 'utf8');
-        languageState = JSON.parse(data);
-        console.log(`Loaded language state: ${languageState.language}`);
-    }
+function getGuildLanguage(guildId) {
+  if (!fs.existsSync(stateFilePath)) return 'en';
+  const state = JSON.parse(fs.readFileSync(stateFilePath, 'utf8'));
+  return state[guildId] || state['default'] || 'en';
 }
 
-function saveLanguageState() {
-    fs.writeFileSync(stateFilePath, JSON.stringify(languageState, null, 2));
-    console.log(`Saved language state: ${languageState.language}`);
+function setGuildLanguage(guildId, language) {
+  let state = {};
+  if (fs.existsSync(stateFilePath)) {
+    state = JSON.parse(fs.readFileSync(stateFilePath, 'utf8'));
+  }
+  state[guildId] = language;
+  fs.writeFileSync(stateFilePath, JSON.stringify(state, null, 2));
 }
-
-function loadLocale(language) {
-    const filePath = path.join(localesFolderPath, `${language}.json`);
-    if (fs.existsSync(filePath)) {
-        try {
-            const data = fs.readFileSync(filePath, 'utf8');
-            return JSON.parse(data);
-        } catch (err) {
-            console.error(`Error parsing locale for ${language}:`, err);
-        }
-    }
-    return null;
-}
-
-loadLanguageState();
 
 export default {
-    name: 'language',
-    description: 'Change the bot language',
-    options: [
-        {
-            name: 'language',
-            type: 3, // STRING
-            description: 'The language to set (e.g., en, fr)',
-            required: true,
-        },
-    ],
-    async execute(interaction) {
-        if (!interaction.member.permissions.has('ADMINISTRATOR')) {
-            return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
-        }
-
-        const language = interaction.options.getString('language').toLowerCase();
-        const locale = loadLocale(language);
-        if (!locale) {
-            return interaction.reply(`Translation for "${language}" not found. Please contribute a file to the locales folder.`);
-        }
-
-        languageState.language = language;
-        saveLanguageState();
-        await interaction.reply(`Language has been set to ${language}.`);
+  name: 'language',
+  description: 'Change the bot language for this server',
+  options: [
+    {
+      name: 'language',
+      type: 3, // STRING
+      description: 'The language to set (e.g., en, fr)',
+      required: true,
+    },
+  ],
+  async execute(interaction) {
+    if (!interaction.member.permissions.has('ADMINISTRATOR')) {
+      return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
     }
+    const language = interaction.options.getString('language').toLowerCase();
+    // Check if translation file exists
+    if (!fs.existsSync(path.join('locales', language, 'translation.json'))) {
+      return interaction.reply(`Translation for "${language}" not found. Please contribute a file to the locales folder.`);
+    }
+    setGuildLanguage(interaction.guild.id, language);
+    await interaction.reply(`Language for this server has been set to ${language}.`);
+  }
 };
 
-export function getLanguageState() {
-    return languageState;
+export function getGuildLanguageFor(guildId) {
+  return getGuildLanguage(guildId);
 }

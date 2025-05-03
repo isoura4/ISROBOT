@@ -6,13 +6,13 @@ export default {
   data: new SlashCommandBuilder()
     .setName('nowplaying')
     .setDescription('Show the currently playing song'),
-  async execute(interaction, dialogues) {
+  async execute(interaction, t) {
     const queue = musicQueues.get(interaction.guild.id) || [];
     if (queue.length === 0) {
-      await interaction.reply(dialogues.music.queue_empty);
+      await interaction.reply(t('music.queue_empty'));
       return;
     }
     const { url } = queue[0];
-    await interaction.reply(dialogues.music.now_playing.replace('{url}', url));
+    await interaction.reply(t('music.now_playing', { url }));
   }
 };
