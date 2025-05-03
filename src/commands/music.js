@@ -120,12 +120,11 @@ export default {
     // Add to queue
     if (!musicQueues.has(interaction.guild.id)) musicQueues.set(interaction.guild.id, []);
     const queue = musicQueues.get(interaction.guild.id);
+    const wasEmpty = queue.length === 0;
     queue.push({ url, interaction });
     musicQueues.set(interaction.guild.id, queue);
 
-    // Only start playing if not already playing
-    let player = players.get(interaction.guild.id);
-    if (!player || player.state.status === AudioPlayerStatus.Idle) {
+    if (wasEmpty) {
       playNext(interaction.guild.id, connection, dialogues);
     } else {
       await interaction.editReply({ content: dialogues.music.added_to_queue.replace('{url}', url) });

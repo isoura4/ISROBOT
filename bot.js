@@ -1,10 +1,9 @@
 import { ensureEnvKeys } from './src/ensureEnvKeys.js';
-await ensureEnvKeys(); // Wait for .env creation and interactive input
+await ensureEnvKeys(); // Ensure .env exists and is filled
 
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Optionally, check that the DISCORD_TOKEN is now set
 if (!process.env.DISCORD_TOKEN || process.env.DISCORD_TOKEN.trim() === '') {
   console.error("Error: DISCORD_TOKEN is missing. Please update your .env file with your Discord bot token.");
   process.exit(1);
@@ -20,13 +19,11 @@ import { getLanguageState } from './src/commands/language.js';
 import { addMessageXp, addVoiceXp } from './src/levels.js';
 import { Player } from 'discord-player';
 import { DefaultExtractors } from '@discord-player/extractor'; 
+import { sendTelemetry } from './src/telemetry.js';
 
-
-// Setup __filename and __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Deploy slash commands
 deployCommands();
 
 const client = new Client({
@@ -40,14 +37,12 @@ const client = new Client({
 });
 client.commands = new Collection();
 
-// Attach a new Player instance to your client.
 client.player = new Player(client, {
   leaveOnEmpty: true,
   leaveOnEnd: true,
   leaveOnStop: true,
 });
 
-// Load extractors using loadMulti.
 await client.player.extractors.loadMulti(DefaultExtractors);
 
 client.player.on('connectionCreate', (queue, connection) => {
@@ -96,7 +91,6 @@ const commandsPath = path.join(__dirname, 'src', 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter((file) => file.endsWith('.js'));
 for (const file of commandFiles) {
   const command = await import(`./src/commands/${file}`);
-  // Use command.data.name if it exists.
   const commandName = command.default.data ? command.default.data.name : command.default.name;
   client.commands.set(commandName, command.default);
 }
@@ -129,10 +123,25 @@ client.once('ready', () => {
       });
     });
   }, 3600000);
+
+  // Send telemetry on startup and every 24h
+  sendTelemetry(client);
+  setInterval(() => sendTelemetry(client), 24 * 60 * 60 * 1000);
 });
 
+function updateBotStatus() {
+  const ping = client.ws.ping;
+  try {
+    client.user.setPresence({
+      activities: [{ name: `Ping: ${ping}ms`, type: ActivityType.Watching }],
+      status: 'online',
+    });
+  } catch (error) {
+    console.error('Failed to update bot status:', error);
+  }
+}
+
 client.on('interactionCreate', async (interaction) => {
-  // Slash command handling
   if (interaction.isCommand()) {
     const command = client.commands.get(interaction.commandName);
     if (!command) return;
@@ -151,140 +160,6 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
   }
-
-  // Button interaction handling (code omitted for brevity)
 });
-
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-
-  // Award message XP.
-  const newLevel = await addMessageXp(message.guild.id, message.author.id, message.content);
-  if (newLevel) {
-    try {
-      const levelupText = dialogues.levelup 
-        ? dialogues.levelup.replace('{level}', newLevel)
-        : `You've reached level ${newLevel}!`;
-      await message.author.send(levelupText);
-    } catch (err) {
-      console.error('Unable to send DM:', err);
-    }
-  }
-
-  const statePath = path.join(__dirname, 'src', 'commands', 'count-state.json');
-  let gameState = {
-    currentNumber: 0,
-    lastUser: null,
-    gameChannelId: null,
-    counterBroken: false,
-    savedValue: 0,
-  };
-  if (fs.existsSync(statePath)) {
-    try {
-      gameState = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-    } catch (e) {
-      console.error('Error parsing count state file:', e);
-    }
-  }
-  if (message.channel.id !== gameState.gameChannelId) return;
-  const number = parseInt(message.content, 10);
-  if (isNaN(number)) return;
-  const useCounterSaver = process.env.COUNTER_SAVER_ENABLED?.toLowerCase() === 'true';
-
-  if (useCounterSaver) {
-    if (gameState.currentNumber === 0 && number === 1) {
-      gameState.currentNumber = 1;
-      gameState.lastUser = message.author.id;
-      gameState.counterBroken = false;
-      gameState.savedValue = 0;
-      fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-      await message.react('✅');
-      return;
-    }
-    if (message.author.id === gameState.lastUser) {
-      if (!gameState.counterBroken) {
-        gameState.counterBroken = true;
-        gameState.savedValue = gameState.currentNumber;
-        gameState.lastUser = null;
-        fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-        const errorMsg = (dialogues.count && dialogues.count.error_combined)
-          ? dialogues.count.error_combined.replace('{number}', gameState.savedValue)
-          : `Incorrect number! Your counter has been saved at ${gameState.savedValue}. You can save it using an item from the store or start from zero. Good luck!`;
-        await message.reply(errorMsg);
-        await message.react('❌');
-      }
-      return;
-    }
-    if (number === gameState.currentNumber + 1) {
-      if (gameState.counterBroken) {
-        gameState.counterBroken = false;
-        gameState.savedValue = 0;
-      }
-      gameState.currentNumber = number;
-      gameState.lastUser = message.author.id;
-      fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-      await message.react('✅');
-    } else {
-      if (!gameState.counterBroken) {
-        gameState.counterBroken = true;
-        gameState.savedValue = gameState.currentNumber;
-        gameState.lastUser = null;
-        fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-        const errorMsg = (dialogues.count && dialogues.count.error_broken)
-          ? dialogues.count.error_broken.replace('{number}', gameState.savedValue)
-          : `Incorrect number! Your counter has been saved at ${gameState.savedValue}. You can save it using an item from the store or start from zero. Good luck!`;
-        await message.reply(errorMsg);
-        await message.react('❌');
-      } else {
-        gameState.currentNumber = 0;
-        gameState.lastUser = null;
-        gameState.counterBroken = false;
-        gameState.savedValue = 0;
-        fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-      }
-    }
-  } else {
-    if (message.author.id === gameState.lastUser) {
-      gameState.currentNumber = 0;
-      gameState.lastUser = null;
-      fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-      const errorMsg = (dialogues.count && dialogues.count.error_twice)
-        ? dialogues.count.error_twice
-        : 'You have sent twice in a row! The counter has been reset.';
-      await message.reply(errorMsg);
-      await message.react('❌');
-      return;
-    }
-    if (number === gameState.currentNumber + 1) {
-      gameState.currentNumber = number;
-      gameState.lastUser = message.author.id;
-      fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-      await message.react('✅');
-      return;
-    } else {
-      gameState.currentNumber = 0;
-      gameState.lastUser = null;
-      fs.writeFileSync(statePath, JSON.stringify(gameState, null, 2));
-      const errorMsg = (dialogues.count && dialogues.count.error_wrong)
-        ? dialogues.count.error_wrong
-        : 'Wrong number! The counter has been reset.';
-      await message.reply(errorMsg);
-      await message.react('❌');
-      return;
-    }
-  }
-});
-
-function updateBotStatus() {
-  const ping = client.ws.ping;
-  try {
-    client.user.setPresence({
-      activities: [{ name: `Ping: ${ping}ms`, type: ActivityType.Watching }],
-      status: 'online',
-    });
-  } catch (error) {
-    console.error('Failed to update bot status:', error);
-  }
-}
 
 client.login(process.env.DISCORD_TOKEN);

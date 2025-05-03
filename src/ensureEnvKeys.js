@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import readline from 'readline';
 
-// Descriptions for each key.
 const keyDescriptions = {
   DISCORD_TOKEN: 'Your Discord bot token (from the Discord Developer Portal) *required*',
   CLIENT_ID: 'Your Discord application client ID',
@@ -12,10 +11,11 @@ const keyDescriptions = {
   BLUESKY_USERNAME: 'Your Bluesky account username',
   BLUESKY_PASSWORD: 'Your Bluesky application password',
   COUNTER_SAVER_ENABLED: 'Flag (true/false) to enable the Counter Saver feature',
-  COUNTER_SAVER_COOLDOWN_DAYS: 'Cooldown (in days) for the Counter Saver feature'
+  COUNTER_SAVER_COOLDOWN_DAYS: 'Cooldown (in days) for the Counter Saver feature',
+  TELEMETRY_ENABLED: 'Enable anonymous usage telemetry? (true/false, default: true)',
+  TELEMETRY_URL: 'Telemetry endpoint URL (optional, default: project maintainer\'s endpoint)'
 };
 
-// Mark keys that must not be empty.
 const requiredKeys = ['DISCORD_TOKEN'];
 
 function askQuestion(query) {
@@ -31,41 +31,41 @@ function askQuestion(query) {
   });
 }
 
-function delay(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 export async function ensureEnvKeys() {
   const envPath = path.join(process.cwd(), '.env');
-  let content = "";
+  let env = {};
   if (fs.existsSync(envPath)) {
-    content = fs.readFileSync(envPath, 'utf8');
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      if (!line.trim() || line.trim().startsWith('#')) continue;
+      const [key, ...rest] = line.split('=');
+      env[key.trim()] = rest.join('=').trim();
+    }
   }
-  const keys = Object.keys(keyDescriptions);
+
   let updated = false;
-  for (const key of keys) {
-    const regex = new RegExp(`^${key}=`, 'm');
-    if (!regex.test(content)) {
-      let answer = "";
-      // If the key is required, force non-empty input.
-      if (requiredKeys.includes(key)) {
-        while (!answer.trim()) {
-          answer = await askQuestion(`Enter value for ${key} (${keyDescriptions[key]}): `);
-          if (!answer.trim()) {
-            console.log(`The key ${key} is required. Please provide a valid value.`);
-          }
+  for (const key of Object.keys(keyDescriptions)) {
+    if (!env[key] || env[key] === '') {
+      let answer = '';
+      while (requiredKeys.includes(key) && !answer) {
+        answer = await askQuestion(`Enter value for ${key} (${keyDescriptions[key]}): `);
+        if (!answer && requiredKeys.includes(key)) {
+          console.log(`${key} is required.`);
         }
-      } else {
-        answer = await askQuestion(`Enter value for ${key} (${keyDescriptions[key]}). Leave blank to skip: `);
       }
-      content += `\n${key}=${answer.trim()}`;
+      if (!answer && !requiredKeys.includes(key)) {
+        answer = '';
+      }
+      env[key] = answer;
       updated = true;
     }
   }
+
   if (updated) {
+    const content = Object.entries(env)
+      .map(([k, v]) => `${k}=${v}`)
+      .join('\n');
     fs.writeFileSync(envPath, content);
-    console.log('Created/updated .env with necessary keys.');
-    // Wait 2 seconds to ensure the file is fully written.
-    await delay(2000);
+    console.log('.env file created/updated.');
   }
 }
