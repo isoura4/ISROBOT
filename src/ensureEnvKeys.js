@@ -11,12 +11,18 @@ const keyDescriptions = {
   BLUESKY_USERNAME: 'Your Bluesky account username',
   BLUESKY_PASSWORD: 'Your Bluesky application password',
   COUNTER_SAVER_ENABLED: 'Flag (true/false) to enable the Counter Saver feature',
-  COUNTER_SAVER_COOLDOWN_DAYS: 'Cooldown (in days) for the Counter Saver feature',
-  TELEMETRY_ENABLED: 'Enable anonymous usage telemetry? (true/false, default: true)',
-  TELEMETRY_URL: 'Telemetry endpoint URL (optional, default: project maintainer\'s endpoint)'
+  COUNTER_SAVER_COOLDOWN_DAYS: 'Cooldown (in days) for the Counter Saver feature'
 };
 
-const requiredKeys = ['DISCORD_TOKEN'];
+const requiredKeys = ['DISCORD_TOKEN','CLIENT_ID', 'GUILD_ID'];
+const optionalKeys = [
+  'TWITCH_CLIENT_ID',
+  'TWITCH_CLIENT_SECRET',
+  'BLUESKY_USERNAME',
+  'BLUESKY_PASSWORD',
+  'COUNTER_SAVER_ENABLED',
+  'COUNTER_SAVER_COOLDOWN_DAYS'
+];
 
 function askQuestion(query) {
   const rl = readline.createInterface({

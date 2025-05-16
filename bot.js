@@ -13,7 +13,6 @@ import { startStreamCheckInterval } from './src/commands/stream.js';
 import { addVoiceXp } from './src/levels.js';
 import { Player } from 'discord-player';
 import { DefaultExtractors } from '@discord-player/extractor';
-import { sendTelemetry } from './src/telemetry.js';
 import dbPromise from './src/database.js';
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
@@ -157,10 +156,6 @@ client.once('ready', () => {
       });
     });
   }, 3600000);
-
-  // Send telemetry on startup and every 24h
-  sendTelemetry(client);
-  setInterval(() => sendTelemetry(client), 24 * 60 * 60 * 1000);
 });
 
 // --- Health check endpoint for containers ---
